@@ -211,7 +211,6 @@ def auth_google():
         name = user_info.get("name")
         picture = user_info.get("picture")
 
-        # Auto-register google user if not already present
         if email and not find_user_by_email(email):
             save_user(name=name or "", email=email, password_hash="", auth_type="google")
 
@@ -232,7 +231,7 @@ def auth_google():
         }), 401
 
 
-# ------------------- DATA ROUTES -------------------
+
 
 @app.route("/user-data", methods=["POST"])
 def user_data():
