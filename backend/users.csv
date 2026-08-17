@@ -1,1 +1,2 @@
 name,email,password_hash,auth_type
+ayush pandey,ayushp1603@gmail.com,scrypt:32768:8:1$4d1isnhV0d81PArY$f30d71a6feb37801ee19ac50b06aea714fbdd8921a275e7afd4c7df8de0a49708c3a73ef1b0dd82ff5d8d6388f81fb799b1981ccd26488ec7cf0758948496ae5,local

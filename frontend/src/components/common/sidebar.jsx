@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -12,40 +13,25 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  {
-    label: "Overview",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Transactions",
-    icon: ArrowLeftRight,
-  },
-  {
-    label: "Budget",
-    icon: WalletCards,
-  },
-  {
-    label: "Portfolio",
-    icon: BriefcaseBusiness,
-  },
-  {
-    label: "Risk Intelligence",
-    icon: ShieldCheck,
-  },
-  {
-    label: "Reports",
-    icon: FileBarChart,
-  },
-  {
-    label: "AI Copilot",
-    icon: Sparkles,
-  },
+  { label: "Overview", icon: LayoutDashboard },
+  { label: "Transactions", icon: ArrowLeftRight },
+  { label: "Budget", icon: WalletCards },
+  { label: "Portfolio", icon: BriefcaseBusiness },
+  { label: "Risk Intelligence", icon: ShieldCheck },
+  { label: "Reports", icon: FileBarChart },
+  { label: "AI Copilot", icon: Sparkles },
 ];
 
 function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    navigate("/auth/login");
+  };
+
   return (
     <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
-      {/* Brand */}
       <div className="flex h-20 items-center border-b border-slate-100 px-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#07111f] text-emerald-400">
@@ -56,7 +42,6 @@ function Sidebar() {
             <h1 className="text-lg font-bold tracking-tight text-[#07111f]">
               Finance<span className="text-emerald-500">AI</span>
             </h1>
-
             <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
               Financial Intelligence
             </p>
@@ -64,7 +49,6 @@ function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-6">
         <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
           Workspace
@@ -94,7 +78,6 @@ function Sidebar() {
                       : "text-slate-400 transition group-hover:text-emerald-500"
                   }
                 />
-
                 <span>{item.label}</span>
               </button>
             );
@@ -102,7 +85,6 @@ function Sidebar() {
         </div>
       </nav>
 
-      {/* Bottom */}
       <div className="border-t border-slate-100 p-3">
         <button
           type="button"
@@ -114,6 +96,7 @@ function Sidebar() {
 
         <button
           type="button"
+          onClick={handleLogout}
           className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600"
         >
           <LogOut size={18} />

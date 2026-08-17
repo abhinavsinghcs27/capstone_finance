@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import {
   ArrowLeft,
   ArrowRight,
@@ -6,20 +7,37 @@ import {
   CheckCircle2,
   ShieldCheck,
   WalletCards,
+  Target,
+  TrendingUp,
 } from "lucide-react";
 
 function ProfileSetup() {
   const [formData, setFormData] = useState({
     name: "",
     age: "",
-    salary: "",
+    employmentType: "",
+    financialGoals: "",
     maritalStatus: "",
-    kids: "",
-    expenses: "",
-    savingGoal: "",
-    saving: "",
+    dependents: "",
+
+    monthlyIncome: "",
+    otherIncome: "",
+
+    fixedExpenses: "",
+    variableExpenses: "",
+    existingDebt: "",
+
+    currentSavings: "",
+    emergencyFund: "",
+
+    stocks: "",
+    mutualFunds: "",
+    fixedDeposit: "",
+    gold: "",
     insurance: "",
-    investment: "",
+    otherInvestments: "",
+
+    riskTolerance: "",
   });
 
   const handleChange = (event) => {
@@ -31,14 +49,36 @@ function ProfileSetup() {
     }));
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const navigate = useNavigate();
 
-    console.log("Profile data:", formData);
-  };
+const handleSubmit = async (event) => {
+  event.preventDefault();
 
+  try {
+    const response = await fetch("http://127.0.0.1:5000/user-data", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Unable to save profile");
+    }
+
+    alert("Profile saved successfully!");
+    navigate("/dashboard");
+  } catch (error) {
+    console.error("Profile save error:", error);
+    alert(error.message || "Unable to save profile. Please try again.");
+  }
+};
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-5xl">
+
       {/* Header */}
       <div className="mb-8">
         <button
@@ -55,12 +95,12 @@ function ProfileSetup() {
         </p>
 
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#07111f] sm:text-4xl">
-          Tell us about your finances
+          Build your financial profile
         </h1>
 
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-          This information helps FinanceAI understand your financial position
-          and prepare personalized insights for you.
+          Tell FinanceAI about your income, expenses, savings, investments and
+          financial goals to build your personalized financial profile.
         </p>
       </div>
 
@@ -73,7 +113,7 @@ function ProfileSetup() {
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
-              Step 1 of 1
+              Complete your financial information
             </p>
           </div>
 
@@ -88,21 +128,24 @@ function ProfileSetup() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Personal Information */}
+
+        {/* ================= PERSONAL ================= */}
         <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
           <SectionHeader
             icon={CheckCircle2}
-            title="Personal information"
-            description="A few basic details to personalize your experience."
+            title="Personal"
+            description="Basic information to personalize your financial experience."
           />
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
             <InputField
               label="Full name"
               name="name"
               value={formData.name}
               onChange={handleChange}
               placeholder="Enter your name"
+              required
             />
 
             <InputField
@@ -112,6 +155,23 @@ function ProfileSetup() {
               value={formData.age}
               onChange={handleChange}
               placeholder="Enter your age"
+              required
+            />
+
+            <SelectField
+              label="Employment type"
+              name="employmentType"
+              value={formData.employmentType}
+              onChange={handleChange}
+              options={[
+                ["", "Select employment type"],
+                ["salaried", "Salaried"],
+                ["self-employed", "Self-employed"],
+                ["business", "Business"],
+                ["student", "Student"],
+                ["retired", "Retired"],
+                ["other", "Other"],
+              ]}
             />
 
             <SelectField
@@ -120,7 +180,7 @@ function ProfileSetup() {
               value={formData.maritalStatus}
               onChange={handleChange}
               options={[
-                ["", "Select status"],
+                ["", "Select marital status"],
                 ["single", "Single"],
                 ["married", "Married"],
                 ["other", "Other"],
@@ -128,72 +188,182 @@ function ProfileSetup() {
             />
 
             <InputField
-              label="Number of kids"
-              name="kids"
+              label="No. of dependents"
+              name="dependents"
               type="number"
-              value={formData.kids}
+              value={formData.dependents}
               onChange={handleChange}
               placeholder="0"
             />
+
+            <SelectField
+              label="Primary financial goal"
+              name="financialGoals"
+              value={formData.financialGoals}
+              onChange={handleChange}
+              options={[
+                ["", "Select financial goal"],
+                ["saving", "Build savings"],
+                ["emergency", "Build emergency fund"],
+                ["investment", "Grow investments"],
+                ["debt-free", "Become debt free"],
+                ["retirement", "Retirement planning"],
+                ["wealth", "Long-term wealth creation"],
+              ]}
+            />
+
           </div>
         </section>
 
-        {/* Financial Information */}
+        {/* ================= INCOME ================= */}
         <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
           <SectionHeader
             icon={WalletCards}
-            title="Income & savings"
-            description="Help FinanceAI understand your current financial position."
+            title="Income"
+            description="Tell us about the money coming into your household each month."
           />
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
             <InputField
-              label="Monthly salary / income"
-              name="salary"
+              label="Monthly income"
+              name="monthlyIncome"
               type="number"
-              value={formData.salary}
+              value={formData.monthlyIncome}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+              required
+            />
+
+            <InputField
+              label="Other income sources"
+              name="otherIncome"
+              type="number"
+              value={formData.otherIncome}
               onChange={handleChange}
               placeholder="₹ Enter amount"
             />
 
-            <InputField
-              label="Monthly overall expenses"
-              name="expenses"
-              type="number"
-              value={formData.expenses}
-              onChange={handleChange}
-              placeholder="₹ Enter amount"
-            />
-
-            <InputField
-              label="Monthly saving goal"
-              name="savingGoal"
-              type="number"
-              value={formData.savingGoal}
-              onChange={handleChange}
-              placeholder="₹ Enter amount"
-            />
-
-            <InputField
-              label="Current savings"
-              name="saving"
-              type="number"
-              value={formData.saving}
-              onChange={handleChange}
-              placeholder="₹ Enter amount"
-            />
           </div>
         </section>
 
-        {/* Protection & Investment */}
+        {/* ================= EXPENSES ================= */}
         <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
           <SectionHeader
-            icon={ShieldCheck}
-            title="Protection & investments"
-            description="Tell us about your existing protection and investment choices."
+            icon={BriefcaseBusiness}
+            title="Expenses"
+            description="Understand your regular spending and existing financial obligations."
           />
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
+            <InputField
+              label="Fixed monthly expenses"
+              name="fixedExpenses"
+              type="number"
+              value={formData.fixedExpenses}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
+            <InputField
+              label="Variable expenses"
+              name="variableExpenses"
+              type="number"
+              value={formData.variableExpenses}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
+            <InputField
+              label="Existing EMIs / debt"
+              name="existingDebt"
+              type="number"
+              value={formData.existingDebt}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
+          </div>
+        </section>
+
+        {/* ================= SAVINGS ================= */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+          <SectionHeader
+            icon={Target}
+            title="Savings"
+            description="Help us understand your current savings position."
+          />
+
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
+            <InputField
+              label="Current savings"
+              name="currentSavings"
+              type="number"
+              value={formData.currentSavings}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
+            <InputField
+              label="Emergency fund"
+              name="emergencyFund"
+              type="number"
+              value={formData.emergencyFund}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
+          </div>
+        </section>
+
+        {/* ================= INVESTMENTS ================= */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+          <SectionHeader
+            icon={TrendingUp}
+            title="Investments"
+            description="Add the approximate amount currently held in your investments."
+          />
+
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
+            <InputField
+              label="Stocks"
+              name="stocks"
+              type="number"
+              value={formData.stocks}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
+            <InputField
+              label="Mutual funds"
+              name="mutualFunds"
+              type="number"
+              value={formData.mutualFunds}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
+            <InputField
+              label="Fixed deposits"
+              name="fixedDeposit"
+              type="number"
+              value={formData.fixedDeposit}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
+            <InputField
+              label="Gold"
+              name="gold"
+              type="number"
+              value={formData.gold}
+              onChange={handleChange}
+              placeholder="₹ Enter amount"
+            />
+
             <SelectField
               label="Insurance"
               name="insurance"
@@ -208,26 +378,47 @@ function ProfileSetup() {
               ]}
             />
 
-            <SelectField
-              label="Investment"
-              name="investment"
-              value={formData.investment}
+            <InputField
+              label="Other investments"
+              name="otherInvestments"
+              type="number"
+              value={formData.otherInvestments}
               onChange={handleChange}
-              options={[
-                ["", "Select investment"],
-                ["mutual-funds", "Mutual Funds"],
-                ["stocks", "Stocks"],
-                ["fixed-deposits", "Fixed Deposits"],
-                ["real-estate", "Real Estate"],
-                ["other", "Other"],
-                ["none", "No investments"],
-              ]}
+              placeholder="₹ Enter amount"
             />
+
           </div>
         </section>
 
-        {/* Footer */}
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+        {/* ================= RISK ================= */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+          <SectionHeader
+            icon={ShieldCheck}
+            title="Risk"
+            description="Tell us how comfortable you are with investment risk."
+          />
+
+          <div className="mt-6">
+
+            <SelectField
+              label="Risk tolerance"
+              name="riskTolerance"
+              value={formData.riskTolerance}
+              onChange={handleChange}
+              options={[
+                ["", "Select your risk tolerance"],
+                ["low", "Low — I prefer stability"],
+                ["moderate", "Moderate — I accept some fluctuations"],
+                ["high", "High — I can accept higher fluctuations"],
+              ]}
+            />
+
+          </div>
+        </section>
+
+        {/* ================= FOOTER ================= */}
+        <div className="flex flex-col-reverse gap-3 pb-6 sm:flex-row sm:justify-between">
+
           <button
             type="button"
             onClick={() => window.history.back()}
@@ -247,15 +438,21 @@ function ProfileSetup() {
               className="transition-transform group-hover:translate-x-1"
             />
           </button>
+
         </div>
+
       </form>
     </div>
   );
 }
 
+
+/* ================= SECTION HEADER ================= */
+
 function SectionHeader({ icon: Icon, title, description }) {
   return (
     <div className="flex items-start gap-4">
+
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
         <Icon size={20} />
       </div>
@@ -269,9 +466,13 @@ function SectionHeader({ icon: Icon, title, description }) {
           {description}
         </p>
       </div>
+
     </div>
   );
 }
+
+
+/* ================= INPUT FIELD ================= */
 
 function InputField({
   label,
@@ -280,11 +481,14 @@ function InputField({
   value,
   onChange,
   placeholder,
+  required = false,
 }) {
   return (
     <div>
+
       <label className="mb-2 block text-sm font-medium text-slate-700">
         {label}
+        {required && <span className="ml-1 text-emerald-500">*</span>}
       </label>
 
       <input
@@ -293,11 +497,17 @@ function InputField({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
+        required={required}
+        min={type === "number" ? "0" : undefined}
         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#07111f] outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
       />
+
     </div>
   );
 }
+
+
+/* ================= SELECT FIELD ================= */
 
 function SelectField({
   label,
@@ -308,6 +518,7 @@ function SelectField({
 }) {
   return (
     <div>
+
       <label className="mb-2 block text-sm font-medium text-slate-700">
         {label}
       </label>
@@ -324,6 +535,7 @@ function SelectField({
           </option>
         ))}
       </select>
+
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   ArrowRight,
@@ -11,23 +12,30 @@ import {
 
 function Dashboard() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:5000/user-data")
+      .then((res) => res.json())
+      .then((data) => setUser(data.user))
+      .catch((err) => console.log(err));
+  }, []);
+
   return (
     <div className="mx-auto w-full max-w-[1500px]">
 
-      {/* Welcome */}
       <section className="mb-8">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
             <div className="mb-3 flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
                 Financial Overview
               </p>
             </div>
 
             <h1 className="text-3xl font-semibold tracking-tight text-[#07111f] sm:text-4xl">
-              Welcome to FinanceAI
+              Welcome{user?.name ? `, ${user.name}` : " to FinanceAI"}
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
@@ -38,12 +46,11 @@ function Dashboard() {
           </div>
 
           <div className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-500 shadow-sm md:block">
-            Profile setup · 0%
+            Profile setup · {user ? "100%" : "0%"}
           </div>
         </div>
       </section>
 
-      {/* Profile Setup */}
       <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-[#07111f] p-6 shadow-sm sm:p-8">
         <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
 
@@ -71,61 +78,69 @@ function Dashboard() {
           </div>
 
           <button
-           type="button"
-           onClick={() => {
-             navigate("/profile-setup");
-           }}
-           className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-[#07111f] transition hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-lg"
+            type="button"
+            onClick={() => navigate("/profile-setup")}
+            className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-[#07111f] transition hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-lg"
           >
-          Complete profile
-
-          <ArrowRight
-          size={16}
-          className="transition-transform group-hover:translate-x-1"
-           />
+            Update profile
+            <ArrowRight
+              size={16}
+              className="transition-transform group-hover:translate-x-1"
+            />
           </button>
-
         </div>
       </section>
 
-      {/* Overview Cards */}
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <EmptyCard
           icon={WalletCards}
-          title="Financial balance"
-          description="Add your financial details to see your balance."
+          title="Current savings"
+          description={
+            user?.saving
+              ? `₹${user.saving}`
+              : "Add your savings to see them here."
+          }
         />
 
         <EmptyCard
           icon={BarChart3}
-          title="Cash flow"
-          description="Your income and expenses will appear here."
+          title="Expenses"
+          description={
+            user?.overall_expenses
+              ? `₹${user.overall_expenses} recorded`
+              : "Add your expenses to see them here."
+          }
         />
 
         <EmptyCard
           icon={BriefcaseBusiness}
           title="Investments"
-          description="Your investment overview will appear here."
+          description={
+            user?.investment
+              ? `₹${user.investment}`
+              : "Your investment overview will appear here."
+          }
         />
 
         <EmptyCard
           icon={ShieldCheck}
-          title="Financial health"
-          description="Your personalized financial score will appear here."
+          title="Financial goal"
+          description={
+            user?.saving_goal
+              ? `Target: ₹${user.saving_goal}`
+              : "Set a savings goal to track your progress."
+          }
         />
       </section>
 
-      {/* Analytics */}
       <section className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
 
-        {/* Chart Empty State */}
         <div className="min-h-[330px] rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                 Analytics
               </p>
-
               <h2 className="mt-2 text-lg font-semibold text-[#07111f]">
                 Cash flow overview
               </h2>
@@ -152,7 +167,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* AI Empty State */}
         <div className="min-h-[330px] rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
           <div className="flex h-full flex-col">
             <div className="flex items-start justify-between">
@@ -160,7 +174,6 @@ function Dashboard() {
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
                   FinanceAI
                 </p>
-
                 <h2 className="mt-2 text-lg font-semibold text-[#07111f]">
                   AI insights
                 </h2>
@@ -189,9 +202,7 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* Bottom Empty States */}
       <section className="mt-6 grid gap-6 md:grid-cols-2">
-
         <EmptyPanel
           icon={BriefcaseBusiness}
           eyebrow="Portfolio"
@@ -205,7 +216,6 @@ function Dashboard() {
           title="Understand your financial risk"
           description="FinanceAI will evaluate your financial position and highlight areas that need attention."
         />
-
       </section>
     </div>
   );
@@ -229,12 +239,7 @@ function EmptyCard({ icon: Icon, title, description }) {
   );
 }
 
-function EmptyPanel({
-  icon: Icon,
-  eyebrow,
-  title,
-  description,
-}) {
+function EmptyPanel({ icon: Icon, eyebrow, title, description }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
       <div className="flex items-start gap-4">
