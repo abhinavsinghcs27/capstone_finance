@@ -28,8 +28,9 @@ GOOGLE_CLIENT_ID = os.getenv(
 
 @dataclass
 class FinanceAI:
-    name: str
-    age: int
+    email: str = ""
+    name: str = ""
+    age: int = 0
     employment_type: str = ""
     financial_goals: str = ""
     marital_status: str = ""
@@ -57,8 +58,9 @@ class FinanceAI:
     @classmethod
     def from_dict(cls, data):
         return cls(
+            email=str(data.get("email", "")).strip().lower(),
             name=str(data.get("name", "")).strip(),
-            age=int(data.get("age", 0)),
+            age=int(data.get("age", 0) or 0),
             employment_type=str(data.get("employmentType", "")),
             financial_goals=str(data.get("financialGoals", "")),
             marital_status=str(data.get("maritalStatus", "")),
@@ -98,6 +100,44 @@ def init_db():
             csv.DictWriter(file, fieldnames=USER_FIELDS).writeheader()
 
 
+def save_or_update_user_data(user_dict):
+    init_db()
+    existing_rows = []
+    if os.path.exists(CSV_FILE):
+        with open(CSV_FILE, "r", encoding="utf-8") as file:
+            existing_rows = list(csv.DictReader(file))
+
+    user_email = str(user_dict.get("email", "")).strip().lower()
+    user_name = str(user_dict.get("name", "")).strip().lower()
+
+    updated = False
+    new_rows = []
+
+    for row in existing_rows:
+        row_email = str(row.get("email", "")).strip().lower()
+        row_name = str(row.get("name", "")).strip().lower()
+
+        is_match = False
+        if user_email and row_email:
+            is_match = (row_email == user_email)
+        elif user_name and row_name:
+            is_match = (row_name == user_name)
+
+        if is_match:
+            new_rows.append(user_dict)
+            updated = True
+        else:
+            new_rows.append(row)
+
+    if not updated:
+        new_rows.append(user_dict)
+
+    with open(CSV_FILE, "w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=FIELDS)
+        writer.writeheader()
+        writer.writerows(new_rows)
+
+
 def get_all_users():
     if not os.path.exists(USERS_CSV):
         return []
@@ -131,15 +171,23 @@ def get_user_data():
     if not os.path.exists(CSV_FILE):
         return jsonify({"success": True, "user": None})
 
+    email = request.args.get("email", "").strip().lower()
+
     with open(CSV_FILE, "r", encoding="utf-8") as file:
         users = list(csv.DictReader(file))
 
     if not users:
         return jsonify({"success": True, "user": None})
 
-    user = {key: value for key, value in users[-1].items() if key is not None}
+    if email:
+        for user in reversed(users):
+            if user.get("email", "").lower() == email:
+                user_clean = {k: v for k, v in user.items() if k is not None}
+                return jsonify({"success": True, "user": user_clean})
+        return jsonify({"success": True, "user": None})
 
-    return jsonify({"success": True, "user": user})
+    user_clean = {key: value for key, value in users[-1].items() if key is not None}
+    return jsonify({"success": True, "user": user_clean})
 # ---------------- AUTH ----------------
 
 @app.route("/auth/signup", methods=["POST"])
@@ -318,17 +366,12 @@ def user_data():
             "message": "Please enter valid financial information"
         }), 400
 
-    with open(CSV_FILE, "a", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=FIELDS)
-        writer.writerow(asdict(user))
+    save_or_update_user_data(asdict(user))
 
     return jsonify({
         "success": True,
         "message": "User financial profile saved successfully",
-        "user": {
-            "name": user.name,
-            "age": user.age
-        }
+        "user": asdict(user)
     }), 200
 
 

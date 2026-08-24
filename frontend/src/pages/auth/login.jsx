@@ -53,7 +53,8 @@ function Login() {
 
       saveUser(data.user);
     } catch (err) {
-      setError("Google login failed. Please try again.");
+      console.error("Google login error:", err);
+      setError(err.response?.data?.message || err.message || "Google login failed. Please try again.");
     }
   };
 

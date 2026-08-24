@@ -38,6 +38,16 @@ function AppRouter() {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/profile setup"
+        element={
+          <PrivateRoute>
+            <DashboardLayout>
+              <ProfileSetup />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
 
       <Route path="/" element={<Navigate to="/auth/login" replace />} />
       <Route path="*" element={<Navigate to="/auth/login" replace />} />

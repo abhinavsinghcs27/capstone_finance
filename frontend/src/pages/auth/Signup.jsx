@@ -66,7 +66,8 @@ function Signup() {
 
       saveUser(data.user);
     } catch (err) {
-      setError("Google signup failed. Please try again.");
+      console.error("Google signup error:", err);
+      setError(err.response?.data?.message || err.message || "Google signup failed. Please try again.");
     }
   };
 

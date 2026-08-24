@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import api from "../../../services/api";
 import {
   ArrowRight,
   BarChart3,
@@ -15,11 +16,22 @@ function Dashboard() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:5000/user-data")
-      .then((res) => res.json())
-      .then((data) => setUser(data.user))
+    const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const params = savedUser.email ? { email: savedUser.email } : {};
+
+    api.get("/user-data", { params })
+      .then((res) => setUser(res.data.user))
       .catch((err) => console.log(err));
   }, []);
+
+  const totalSavings = user?.current_savings || user?.saving;
+  const computedExpenses = (parseInt(user?.fixed_expenses || 0) + parseInt(user?.variable_expenses || 0) + parseInt(user?.existing_debt || 0));
+  const totalExpenses = computedExpenses > 0 ? computedExpenses : user?.overall_expenses;
+  
+  const computedInvestments = (parseInt(user?.stocks || 0) + parseInt(user?.mutual_funds || 0) + parseInt(user?.fixed_deposit || 0) + parseInt(user?.gold || 0) + parseInt(user?.other_investments || 0));
+  const totalInvestments = computedInvestments > 0 ? computedInvestments : user?.investment;
+  
+  const goal = user?.financial_goals || user?.saving_goal;
 
   return (
     <div className="mx-auto w-full max-w-[1500px]">
@@ -62,17 +74,17 @@ function Dashboard() {
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-400">
-                Get started
+                {user ? "Profile Active" : "Get started"}
               </p>
 
               <h2 className="mt-2 text-xl font-semibold text-white">
-                Build your financial profile
+                {user ? "Your Financial Profile is Recorded" : "Build your financial profile"}
               </h2>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                Tell FinanceAI about your income, expenses, savings and
-                investments. We'll use this information to personalize your
-                financial intelligence.
+                {user
+                  ? "Your 21 financial data points are saved to your account. View your profile summary or edit your financial details anytime."
+                  : "Tell FinanceAI about your income, expenses, savings and investments to personalize your financial intelligence."}
               </p>
             </div>
           </div>
@@ -82,7 +94,7 @@ function Dashboard() {
             onClick={() => navigate("/profile-setup")}
             className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-[#07111f] transition hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-lg"
           >
-            Update profile
+            {user ? "View / Edit Profile" : "Build profile"}
             <ArrowRight
               size={16}
               className="transition-transform group-hover:translate-x-1"
@@ -96,8 +108,8 @@ function Dashboard() {
           icon={WalletCards}
           title="Current savings"
           description={
-            user?.saving
-              ? `₹${user.saving}`
+            totalSavings
+              ? `₹${totalSavings}`
               : "Add your savings to see them here."
           }
         />
@@ -106,8 +118,8 @@ function Dashboard() {
           icon={BarChart3}
           title="Expenses"
           description={
-            user?.overall_expenses
-              ? `₹${user.overall_expenses} recorded`
+            totalExpenses
+              ? `₹${totalExpenses} recorded`
               : "Add your expenses to see them here."
           }
         />
@@ -116,8 +128,8 @@ function Dashboard() {
           icon={BriefcaseBusiness}
           title="Investments"
           description={
-            user?.investment
-              ? `₹${user.investment}`
+            totalInvestments
+              ? `₹${totalInvestments}`
               : "Your investment overview will appear here."
           }
         />
@@ -126,8 +138,8 @@ function Dashboard() {
           icon={ShieldCheck}
           title="Financial goal"
           description={
-            user?.saving_goal
-              ? `Target: ₹${user.saving_goal}`
+            goal
+              ? `Goal: ${goal}`
               : "Set a savings goal to track your progress."
           }
         />

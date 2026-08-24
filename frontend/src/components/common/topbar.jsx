@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Bell,
   Search,
@@ -6,6 +7,18 @@ import {
 } from "lucide-react";
 
 function Topbar() {
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    if (savedUser.name) {
+      setUserName(savedUser.name);
+    }
+  }, []);
+
+  const displayName = userName || "User";
+  const initial = displayName.charAt(0).toUpperCase();
+
   return (
     <header className="flex h-20 items-center justify-between border-b border-slate-200 bg-white px-6 lg:px-8">
       {/* Search */}
@@ -50,12 +63,12 @@ function Topbar() {
           className="ml-2 flex items-center gap-3 rounded-xl px-2 py-1.5 transition hover:bg-slate-50"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#07111f] text-sm font-semibold text-white">
-            A
+            {initial}
           </div>
 
           <div className="hidden text-left sm:block">
             <p className="text-sm font-semibold text-[#07111f]">
-              Ayush
+              {displayName}
             </p>
 
             <p className="text-xs text-slate-400">
