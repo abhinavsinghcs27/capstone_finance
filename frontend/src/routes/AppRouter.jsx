@@ -5,8 +5,9 @@ import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/forgotpassword";
 
 import DashboardLayout from "../layouts/DashboardLayout";
-import Dashboard from "../pages/auth/dashboard/Dashboard";
-import ProfileSetup from "../pages/auth/dashboard/ProfileSetup";
+import Dashboard from "../pages/dashboard/Dashboard";
+import ProfileSetup from "../pages/dashboard/ProfileSetup";
+import UploadStatement from "../pages/upload/UploadStatement";
 
 function PrivateRoute({ children }) {
   const user = localStorage.getItem("user");
@@ -56,6 +57,18 @@ function AppRouter() {
           <PrivateRoute>
             <DashboardLayout>
               <ProfileSetup />
+            </DashboardLayout>
+          </PrivateRoute>
+        }
+      />
+
+      {/* Upload Statement */}
+      <Route
+        path="/upload-statement"
+        element={
+          <PrivateRoute>
+            <DashboardLayout>
+              <UploadStatement />
             </DashboardLayout>
           </PrivateRoute>
         }

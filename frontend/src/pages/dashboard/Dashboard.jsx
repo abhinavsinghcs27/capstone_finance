@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../../services/api";
+import api from "../../services/api";
+
 import {
   ArrowRight,
   BarChart3,
@@ -9,6 +10,7 @@ import {
   ShieldCheck,
   WalletCards,
   Sparkles,
+  FileUp,
 } from "lucide-react";
 
 function Dashboard() {
@@ -17,7 +19,10 @@ function Dashboard() {
 
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
-    const params = savedUser.email ? { email: savedUser.email } : {};
+
+    const params = savedUser.email
+      ? { email: savedUser.email }
+      : {};
 
     api
       .get("/user-data", { params })
@@ -101,6 +106,7 @@ function Dashboard() {
 
   return (
     <div className="mx-auto w-full max-w-[1500px]">
+      {/* PAGE HEADER */}
       <section className="mb-8">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
@@ -121,8 +127,9 @@ function Dashboard() {
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
               Your financial intelligence workspace is ready.
-              Complete your profile to unlock personalized analytics,
-              risk intelligence and AI-powered insights.
+              Complete your profile or upload a financial statement to
+              unlock personalized analytics, risk intelligence and
+              AI-powered insights.
             </p>
           </div>
 
@@ -136,43 +143,109 @@ function Dashboard() {
         </div>
       </section>
 
-      {!isProfileComplete && (
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-[#07111f] p-6 shadow-sm sm:p-8">
-          <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
+      {/* QUICK START OPTIONS */}
+      <section className="mb-6 grid gap-4 lg:grid-cols-2">
+        {/* PROFILE SETUP */}
+        {!isProfileComplete && (
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-[#07111f] p-6 shadow-sm sm:p-7">
+            <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
 
-          <div className="relative flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative flex h-full flex-col justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-400">
+                  <Sparkles size={22} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-400">
+                    {user ? "Profile setup" : "Get started"}
+                  </p>
+
+                  <h2 className="mt-2 text-xl font-semibold text-white">
+                    {user
+                      ? "Complete your financial profile"
+                      : "Build your financial profile"}
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    {user
+                      ? `${profilePercentage}% of your profile is complete. Add the remaining financial details to unlock a more personalized FinanceAI experience.`
+                      : "Add your income, expenses, savings and investments manually to build your financial profile."}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate("/profile-setup")}
+                className="group flex w-fit items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-[#07111f] transition hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-lg"
+              >
+                {user
+                  ? "Complete profile"
+                  : "Build profile"}
+
+                <ArrowRight
+                  size={16}
+                  className="transition-transform group-hover:translate-x-1"
+                />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* UPLOAD STATEMENT */}
+        <div
+          className={`relative overflow-hidden rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm sm:p-7 ${
+            isProfileComplete ? "lg:col-span-2" : ""
+          }`}
+        >
+          <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-emerald-50 blur-3xl" />
+
+          <div className="relative flex h-full flex-col justify-between gap-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-400">
-                <Sparkles size={22} />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <FileUp size={22} />
               </div>
 
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-400">
-                  {user ? "Profile setup" : "Get started"}
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
+                  Quick import
                 </p>
 
-                <h2 className="mt-2 text-xl font-semibold text-white">
-                  {user
-                    ? "Complete your financial profile"
-                    : "Build your financial profile"}
+                <h2 className="mt-2 text-xl font-semibold text-[#07111f]">
+                  Upload your financial statement
                 </h2>
 
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                  {user
-                    ? `${profilePercentage}% of your profile is complete. Add the remaining financial details to unlock a more personalized FinanceAI experience.`
-                    : "Tell FinanceAI about your income, expenses, savings and investments to personalize your financial intelligence."}
+                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+                  Upload your bank statement or financial document and
+                  FinanceAI will extract and organize your financial
+                  information automatically.
                 </p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                    PDF
+                  </span>
+
+                  <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                    CSV
+                  </span>
+
+                  <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                    XLSX
+                  </span>
+                </div>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={() => navigate("/profile-setup")}
-              className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-[#07111f] transition hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-lg"
+              onClick={() => navigate("/upload-statement")}
+              className="group flex w-fit items-center justify-center gap-2 rounded-xl bg-[#07111f] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg"
             >
-              {user
-                ? "Complete profile"
-                : "Build profile"}
+              <FileUp size={17} />
+
+              Upload statement
 
               <ArrowRight
                 size={16}
@@ -180,14 +253,11 @@ function Dashboard() {
               />
             </button>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      <section
-        className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-4 ${
-          isProfileComplete ? "mt-0" : "mt-6"
-        }`}
-      >
+      {/* FINANCIAL SUMMARY */}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <EmptyCard
           icon={WalletCards}
           title="Current savings"
@@ -229,6 +299,7 @@ function Dashboard() {
         />
       </section>
 
+      {/* ANALYTICS */}
       <section className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <div className="min-h-[330px] rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
           <div className="flex items-start justify-between">
@@ -257,12 +328,13 @@ function Dashboard() {
             </h3>
 
             <p className="mt-1 max-w-sm text-xs leading-5 text-slate-400">
-              Your income and expense trends will appear here once your
-              financial profile is completed.
+              Upload a statement or complete your financial profile to
+              start seeing your income and expense trends here.
             </p>
           </div>
         </div>
 
+        {/* AI INSIGHTS */}
         <div className="min-h-[330px] rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
           <div className="flex h-full flex-col">
             <div className="flex items-start justify-between">
@@ -291,14 +363,15 @@ function Dashboard() {
               </h3>
 
               <p className="mt-1 text-xs leading-5 text-slate-400">
-                Complete your financial profile to receive personalized
-                recommendations.
+                Upload a financial statement or complete your profile
+                to receive personalized recommendations.
               </p>
             </div>
           </div>
         </div>
       </section>
 
+      {/* PORTFOLIO + RISK */}
       <section className="mt-6 grid gap-6 md:grid-cols-2">
         <EmptyPanel
           icon={BriefcaseBusiness}
