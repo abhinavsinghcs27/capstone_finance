@@ -1,8 +1,10 @@
 import csv
 import os
 from dataclasses import asdict, dataclass, fields
+from engines.financial_engine import FinancialEngine
 
 CSV_FILE = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "user_data.csv")
+
 
 @dataclass
 class FinanceAI:
@@ -54,8 +56,8 @@ class FinanceAI:
             current_savings=int(data.get("currentSavings", data.get("current_savings", 0)) or 0),
             emergency_fund=int(data.get("emergencyFund", data.get("emergency_fund", 0)) or 0),
 
-            stocks=int(data.get("stocks", 0) or 0),
-            mutual_funds=int(data.get("mutualFunds", data.get("mutual_funds", 0)) or 0),
+            stocks=int(data.get("stocks", data.get("stock", 0)) or 0),
+            mutual_funds=int(data.get("mutualFunds", data.get("mutual_fund", 0)) or 0),
             fixed_deposit=int(data.get("fixedDeposit", data.get("fixed_deposit", 0)) or 0),
             gold=int(data.get("gold", 0) or 0),
             insurance=str(data.get("insurance", "")),
@@ -64,36 +66,64 @@ class FinanceAI:
             risk_tolerance=str(data.get("riskTolerance", data.get("risk_tolerance", "")))
         )
 
+
 FIELDS = [f.name for f in fields(FinanceAI)]
+
 
 def init_profile_csv():
     if not os.path.exists(CSV_FILE):
         with open(CSV_FILE, "w", newline="", encoding="utf-8") as file:
             csv.DictWriter(file, fieldnames=FIELDS).writeheader()
 
+
 class ProfileService:
     @staticmethod
     def get_profile(email=None):
         init_profile_csv()
         if not os.path.exists(CSV_FILE):
-            return {"success": True, "user": None}
+            return {"success": True, "user": None, "evaluation": None}
 
         with open(CSV_FILE, "r", encoding="utf-8") as file:
             users = list(csv.DictReader(file))
 
         if not users:
-            return {"success": True, "user": None}
+            return {"success": True, "user": None, "evaluation": None}
 
+        matched_user = None
         if email:
             email_clean = email.strip().lower()
             for user in reversed(users):
                 if user.get("email", "").lower() == email_clean:
-                    user_clean = {k: v for k, v in user.items() if k is not None}
-                    return {"success": True, "user": user_clean}
-            return {"success": True, "user": None}
+                    matched_user = {k: v for k, v in user.items() if k is not None}
+                    break
+        else:
+            matched_user = {key: value for key, value in users[-1].items() if key is not None}
 
-        user_clean = {key: value for key, value in users[-1].items() if key is not None}
-        return {"success": True, "user": user_clean}
+        if matched_user:
+            evaluation = FinancialEngine(matched_user).run_full_evaluation()
+            return {
+                "success": True,
+                "user": matched_user,
+                "evaluation": evaluation
+            }
+
+        return {"success": True, "user": None, "evaluation": None}
+
+    @staticmethod
+    def evaluate_profile(data):
+        if not data or not isinstance(data, dict):
+            return {
+                "success": False,
+                "message": "Financial data payload is required for evaluation",
+                "status": 400
+            }
+        
+        evaluation = FinancialEngine(data).run_full_evaluation()
+        return {
+            "success": True,
+            "evaluation": evaluation,
+            "status": 200
+        }
 
     @staticmethod
     def save_or_update_profile(data):
@@ -156,9 +186,12 @@ class ProfileService:
             writer.writeheader()
             writer.writerows(new_rows)
 
+        evaluation = FinancialEngine(user_dict).run_full_evaluation()
+
         return {
             "success": True,
             "message": "User financial profile saved successfully",
             "user": user_dict,
+            "evaluation": evaluation,
             "status": 200
         }

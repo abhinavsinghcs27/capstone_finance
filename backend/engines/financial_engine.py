@@ -1,23 +1,54 @@
+def _to_num(val):
+    if val is None or val == "":
+        return 0.0
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return 0.0
+
+
 class FinancialEngine:
     """Core analysis engine for personal financial evaluation."""
 
     def __init__(self, profile_data: dict):
-        self.data = profile_data
-        self.total_income = self.data.get("monthly_income", 0) + self.data.get("other_income", 0)
-        self.total_expenses = self.data.get("fixed_expenses", 0) + self.data.get("variable_expenses", 0)
-        self.monthly_savings = max(0, self.total_income - self.total_expenses)
+        self.data = profile_data or {}
+
+        def get_val(*keys, default=0.0):
+            for k in keys:
+                if k in self.data and self.data[k] is not None:
+                    return _to_num(self.data[k])
+            return default
+
+        self.monthly_income = get_val("monthly_income", "monthlyIncome")
+        self.other_income = get_val("other_income", "otherIncome")
+        self.fixed_expenses = get_val("fixed_expenses", "fixedExpenses")
+        self.variable_expenses = get_val("variable_expenses", "variableExpenses")
+        self.existing_debt = get_val("existing_debt", "existingDebt", "debt")
+        self.emergency_fund = get_val("emergency_fund", "emergencyFund")
+        self.current_savings = get_val("current_savings", "currentSavings", "saving", "savings")
+        self.stocks = get_val("stocks", "stock")
+        self.mutual_funds = get_val("mutual_funds", "mutual_fund", "mutualFunds")
+        self.fixed_deposit = get_val("fixed_deposit", "fixedDeposit", "fd")
+        self.gold = get_val("gold")
+        self.other_investments = get_val("other_investments", "otherInvestments", "other_investment")
+        self.dependents = int(get_val("dependents", default=0))
+        self.insurance = str(self.data.get("insurance", "")).strip()
+
+        self.total_income = self.monthly_income + self.other_income
+        self.total_expenses = self.fixed_expenses + self.variable_expenses
+        self.monthly_savings = max(0.0, self.total_income - self.total_expenses)
 
     def calculate_ratios(self) -> dict:
         """Compute DTI, Savings rate, and emergency runway (in months)."""
-        if self.total_income:
-            dti = (self.data.get("existing_debt", 0) / self.total_income) * 100
+        if self.total_income > 0:
+            dti = (self.existing_debt / self.total_income) * 100
             savings_rate = (self.monthly_savings / self.total_income) * 100
         else:
             dti = 0.0
             savings_rate = 0.0
 
-        if self.total_expenses:
-            emergency_months = self.data.get("emergency_fund", 0) / self.total_expenses
+        if self.total_expenses > 0:
+            emergency_months = self.emergency_fund / self.total_expenses
         else:
             emergency_months = 0.0
 
@@ -65,21 +96,21 @@ class FinancialEngine:
 
     def analyze_portfolio(self) -> dict:
         """Calculate net worth and asset breakdown percentage."""
-        stocks = self.data.get("stock", 0) + self.data.get("stocks", 0)
-        mf = self.data.get("mutual_fund", 0) + self.data.get("mutual_funds", 0)
-        fd = self.data.get("fixed_deposit", 0)
-        gold = self.data.get("gold", 0)
-        others = self.data.get("other_saving", 0) + self.data.get("current_savings", 0)
-        savings = self.data.get("other_investment", 0) + self.data.get("other_investments", 0)
+        total_assets = (
+            self.stocks +
+            self.mutual_funds +
+            self.fixed_deposit +
+            self.gold +
+            self.current_savings +
+            self.other_investments
+        )
+        net_worth = total_assets - self.existing_debt
 
-        total_assets = stocks + mf + fd + gold + others + savings
-        net_worth = total_assets - self.data.get("existing_debt", 0)
-
-        if total_assets:
-            equity = round((stocks + mf) / total_assets * 100, 1)
-            fixed_income = round(fd / total_assets * 100, 1)
-            gold_percentage = round(gold / total_assets * 100, 1)
-            cash = round(savings / total_assets * 100, 1)
+        if total_assets > 0:
+            equity = round((self.stocks + self.mutual_funds) / total_assets * 100, 1)
+            fixed_income = round(self.fixed_deposit / total_assets * 100, 1)
+            gold_percentage = round(self.gold / total_assets * 100, 1)
+            cash = round((self.current_savings + self.other_investments) / total_assets * 100, 1)
         else:
             equity = 0.0
             fixed_income = 0.0
@@ -87,8 +118,9 @@ class FinancialEngine:
             cash = 0.0
 
         return {
-            "net_worth": net_worth,
-            "total_assets": total_assets,
+            "net_worth": round(net_worth, 2),
+            "total_assets": round(total_assets, 2),
+            "total_debt": round(self.existing_debt, 2),
             "distribution": {
                 "equity": equity,
                 "fixed_income": fixed_income,
@@ -105,16 +137,41 @@ class FinancialEngine:
         if ratios["emergency_runway_months"] < 3:
             insights.append({
                 "type": "WARNING",
+                "category": "Emergency Fund",
                 "message": "Your emergency fund covers less than 3 months of expenses. Prioritize liquid savings."
             })
+        elif ratios["emergency_runway_months"] >= 6:
+            insights.append({
+                "type": "SUCCESS",
+                "category": "Emergency Fund",
+                "message": f"Healthy emergency runway of {ratios['emergency_runway_months']} months."
+            })
+
         if ratios["dti_ratio"] > 40:
             insights.append({
                 "type": "ALERT",
+                "category": "Debt",
                 "message": "High Debt-to-Income ratio detected. Consider debt consolidation or aggressive debt payoff."
             })
-        if self.data.get("dependents", 0) > 0 and not self.data.get("insurance"):
+
+        if ratios["savings_rate"] >= 20:
+            insights.append({
+                "type": "SUCCESS",
+                "category": "Savings",
+                "message": f"Great savings discipline! You are saving {ratios['savings_rate']}% of your monthly income."
+            })
+        elif ratios["savings_rate"] < 10:
+            insights.append({
+                "type": "WARNING",
+                "category": "Savings",
+                "message": "Your savings rate is below 10%. Review fixed and variable discretionary spending."
+            })
+
+        has_insurance = bool(self.insurance and self.insurance.lower() not in ["", "no", "none", "false", "0"])
+        if self.dependents > 0 and not has_insurance:
             insights.append({
                 "type": "RISK",
+                "category": "Insurance",
                 "message": "You have dependents but no recorded insurance policy. Consider adequate term life cover."
             })
 
@@ -123,6 +180,11 @@ class FinancialEngine:
     def run_full_evaluation(self) -> dict:
         """Full pipeline execution returning all aggregated metrics."""
         return {
+            "summary": {
+                "total_income": round(self.total_income, 2),
+                "total_expenses": round(self.total_expenses, 2),
+                "monthly_savings": round(self.monthly_savings, 2),
+            },
             "ratios": self.calculate_ratios(),
             "health_score": self.compute_health_score(),
             "portfolio": self.analyze_portfolio(),
