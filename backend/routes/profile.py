@@ -6,6 +6,7 @@ profile_bp = Blueprint("profile", __name__)
 
 @profile_bp.route("", methods=["GET"])
 @profile_bp.route("/", methods=["GET"])
+@profile_bp.route("/dashboard", methods=["GET"])
 def get_user_data():
     email = request.args.get("email", "").strip().lower()
     result = ProfileService.get_profile(email=email if email else None)

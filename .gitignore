@@ -95,6 +95,11 @@ backend/data/*
 *.sqlite
 *.sqlite3
 *.db
+*.csv
+backend/*.csv
+user_data.csv
+users.csv
+
 
 # =============================================================================
 # IDE & System Files
