@@ -1,13 +1,19 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import Login from "../pages/auth/login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/forgotpassword";
 
 import DashboardLayout from "../layouts/DashboardLayout";
+
 import Dashboard from "../pages/dashboard/Dashboard";
 import ProfileSetup from "../pages/dashboard/ProfileSetup";
+import Transactions from "../pages/dashboard/Transactions";
+import Budget from "../pages/dashboard/Budget";
+import Portfolio from "../pages/dashboard/Portfolio";
+
 import UploadStatement from "../pages/upload/UploadStatement";
+
 
 function PrivateRoute({ children }) {
   const user = localStorage.getItem("user");
@@ -15,7 +21,8 @@ function PrivateRoute({ children }) {
   return user ? children : <Navigate to="/auth/login" replace />;
 }
 
-function Page({ title }) {
+
+function PlaceholderPage({ title }) {
   return (
     <DashboardLayout>
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -27,18 +34,25 @@ function Page({ title }) {
   );
 }
 
+
 function AppRouter() {
   return (
     <Routes>
-      {/* Auth */}
+
+      {/* Authentication */}
+
       <Route path="/auth/login" element={<Login />} />
+
       <Route path="/auth/signup" element={<Signup />} />
+
       <Route
         path="/auth/forgot-password"
         element={<ForgotPassword />}
       />
 
+
       {/* Dashboard */}
+
       <Route
         path="/dashboard"
         element={
@@ -50,7 +64,9 @@ function AppRouter() {
         }
       />
 
-      {/* My Profile */}
+
+      {/* Profile */}
+
       <Route
         path="/profile-setup"
         element={
@@ -62,7 +78,9 @@ function AppRouter() {
         }
       />
 
-      {/* Upload Statement */}
+
+      {/* Statement Upload */}
+
       <Route
         path="/upload-statement"
         element={
@@ -74,39 +92,56 @@ function AppRouter() {
         }
       />
 
-      {/* Other modules */}
+
+      {/* Transactions */}
+
       <Route
         path="/transactions"
         element={
           <PrivateRoute>
-            <Page title="Transactions" />
+            <DashboardLayout>
+              <Transactions />
+            </DashboardLayout>
           </PrivateRoute>
         }
       />
+
+
+      {/* Budget */}
 
       <Route
         path="/budget"
         element={
           <PrivateRoute>
-            <Page title="Budget" />
+            <DashboardLayout>
+              <Budget />
+            </DashboardLayout>
           </PrivateRoute>
         }
       />
+
+
+      {/* Portfolio */}
 
       <Route
         path="/portfolio"
         element={
           <PrivateRoute>
-            <Page title="Portfolio" />
+            <DashboardLayout>
+              <Portfolio />
+            </DashboardLayout>
           </PrivateRoute>
         }
       />
+
+
+      {/* Remaining pages */}
 
       <Route
         path="/security-aml"
         element={
           <PrivateRoute>
-            <Page title="Risk & AML" />
+            <PlaceholderPage title="Risk & AML" />
           </PrivateRoute>
         }
       />
@@ -115,7 +150,7 @@ function AppRouter() {
         path="/reports"
         element={
           <PrivateRoute>
-            <Page title="Reports" />
+            <PlaceholderPage title="Reports" />
           </PrivateRoute>
         }
       />
@@ -124,12 +159,14 @@ function AppRouter() {
         path="/ai-copilot"
         element={
           <PrivateRoute>
-            <Page title="AI Copilot" />
+            <PlaceholderPage title="AI Copilot" />
           </PrivateRoute>
         }
       />
 
+
       {/* Default */}
+
       <Route
         path="/"
         element={<Navigate to="/auth/login" replace />}
@@ -139,8 +176,10 @@ function AppRouter() {
         path="*"
         element={<Navigate to="/dashboard" replace />}
       />
+
     </Routes>
   );
 }
+
 
 export default AppRouter;
