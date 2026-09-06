@@ -12,21 +12,25 @@ class StatementParser:
     SALARY_KEYWORDS = ["SALARY", "PAYROLL", "DIRECT DEP", "STIPEND", "WAGES", "HONORARIUM"]
     OTHER_INFLOW_KEYWORDS = [
         "NEFT CR", "ACH CR", "CREDIT INTEREST", "DIVIDEND", "DIVIDENT", "REFUND",
-        "CASHBACK", "UPI CR", "INTEREST", "REVERSAL", "RECEIVED FROM", "MONEY RECEIVED"
+        "CASHBACK", "UPI CR", "INTEREST", "REVERSAL", "RECEIVED FROM", "MONEY RECEIVED",
+        "TRANSFER FROM", "CR TO", "IMPS CR", "RTGS CR", "BY TRANSFER"
     ]
     INFLOW_KEYWORDS = SALARY_KEYWORDS + OTHER_INFLOW_KEYWORDS
     INVESTMENT_KEYWORDS = [
         "MUTUAL FUND", "MF", "SIP", "ZERODHA", "GROWW", "INDMONEY", "UPSTOX", "NSE", "BSE",
-        "SECURITIES", "STOCK", "ETMONEY", "COIN", "PPF", "NPS", "FD", "DEPOSIT", "KIMS", "CAMS", "KARVY"
+        "SECURITIES", "STOCK", "ETMONEY", "COIN", "PPF", "NPS", "FD", "DEPOSIT", "KIMS", "CAMS", "KARVY",
+        "UTI", "HDFC MF", "SBI MF", "ICICI PRU", "NIPPON", "MIRAE", "PARAG PARIKH", "AXIS MF", "KOTAK MF"
     ]
     FIXED_EXPENSE_KEYWORDS = [
         "EMI", "LOAN", "HOUSING", "RENT", "LIC", "BAJAJ FIN", "INSURANCE", "PREMIUM",
-        "MAINTENANCE", "BILL", "ELECTRICITY", "METRO", "BROADBAND", "WIFI", "WATER BILL", "GAS"
+        "MAINTENANCE", "BILL", "ELECTRICITY", "METRO", "BROADBAND", "WIFI", "WATER BILL", "GAS",
+        "AIRTEL", "JIO", "VODAFONE", "VI POSTPAID", "CRED", "CRED CLUB"
     ]
     VARIBLE_KEYWORDS = [
         "UPI", "SWIGGY", "ZOMATO", "AMAZON", "FLIPKART", "GROCERY", "BLINKIT", "ZEPTO", "UBER", "OLA", "PAYTM",
         "RESTAURANT", "CAFE", "FUEL", "PETROL", "CINEMA", "BOOKMYSHOW", "SHOPPING", "RETAIL", "RAPIDO",
-        "FOOD", "ENTERTAINMENT", "SPOTIFY", "YOUTUBE", "MONEY SENT", "PAID TO", "TRANSFER"
+        "FOOD", "ENTERTAINMENT", "SPOTIFY", "YOUTUBE", "MONEY SENT", "PAID TO", "TRANSFER TO", "INSTAMART",
+        "BIGBASKET", "MYNTRA", "AJIO", "TATA 1MG", "PHARMEASY", "APOLLO"
     ]
     VARIABLE_KEYWORDS = VARIBLE_KEYWORDS
 
@@ -38,7 +42,13 @@ class StatementParser:
         "Axis Bank": ["axis", "axisbank"],
         "Kotak Mahindra Bank": ["kotak", "kotak mahindra"],
         "Punjab National Bank": ["pnb", "punjab national"],
-        "Bank of Baroda": ["bob", "bank of baroda"]
+        "Bank of Baroda": ["bob", "bank of baroda"],
+        "Canara Bank": ["canara"],
+        "Union Bank of India": ["union bank"],
+        "IndusInd Bank": ["indusind"],
+        "Federal Bank": ["federal bank"],
+        "Yes Bank": ["yes bank"],
+        "IDFC First Bank": ["idfc", "idfc first"]
     }
 
     @classmethod
@@ -55,14 +65,14 @@ class StatementParser:
 
         if ext == ".csv":
             df = cls._parse_csv(file_path)
-        elif ext in [".xlsx", ".xls"]:
+        elif ext in [".xlsx", ".xls", ".xlsm"]:
             df = cls._parse_excel(file_path)
         elif ext == ".pdf":
             df, raw_text = cls._parse_pdf(file_path)
         else:
             raise ValueError(f"Unsupported file type: {ext}")
 
-        if df.empty:
+        if df is None or df.empty:
             raise ValueError("No transaction data extracted from document.")
 
         df = cls._standerdize_dataframe(df)
@@ -92,18 +102,110 @@ class StatementParser:
         }
 
     @classmethod
+    def _find_header_and_normalize(cls, df: pd.DataFrame) -> pd.DataFrame:
+        """Locates the true transaction table header row within messy metadata rows in Excel/CSV sheets."""
+        if df is None or df.empty:
+            return pd.DataFrame()
+
+        # Check existing columns
+        col_str = " ".join([str(c).lower() for c in df.columns])
+        has_date = any(k in col_str for k in ["date", "txn_dt", "val_dt", "txn date", "time"])
+        has_desc = any(k in col_str for k in ["narration", "description", "particulars", "remarks", "details", "desc", "transaction", "party", "payee"])
+        has_amt = any(k in col_str for k in ["debit", "credit", "withdrawal", "deposit", "amount", "amt", "dr", "cr", "balance"])
+
+        if (has_date and (has_desc or has_amt)) or (has_desc and has_amt):
+            return df
+
+        # Search top 40 rows for header row
+        max_search = min(40, len(df))
+        for idx in range(max_search):
+            row_vals = [str(x).strip().lower() for x in df.iloc[idx].tolist() if pd.notna(x) and str(x).strip()]
+            row_str = " ".join(row_vals)
+            r_has_date = any(k in row_str for k in ["date", "txn_dt", "val_dt", "txn date"])
+            r_has_desc = any(k in row_str for k in ["narration", "description", "particulars", "remarks", "details", "desc", "transaction", "party"])
+            r_has_amt = any(k in row_str for k in ["debit", "credit", "withdrawal", "deposit", "amount", "amt", "dr", "cr", "balance"])
+
+            if (r_has_date and (r_has_desc or r_has_amt)) or (r_has_desc and r_has_amt):
+                new_cols = []
+                seen = {}
+                for col_val in df.iloc[idx].tolist():
+                    c_clean = str(col_val).strip() if pd.notna(col_val) and str(col_val).strip() and str(col_val).strip().lower() != "nan" else "col"
+                    if c_clean in seen:
+                        seen[c_clean] += 1
+                        new_cols.append(f"{c_clean}_{seen[c_clean]}")
+                    else:
+                        seen[c_clean] = 0
+                        new_cols.append(c_clean)
+
+                new_df = df.iloc[idx + 1:].copy()
+                new_df.columns = new_cols
+                return new_df.reset_index(drop=True)
+
+        return df
+
+    @classmethod
     def _parse_csv(cls, file_path: str) -> pd.DataFrame:
-        try:
-            return pd.read_csv(file_path)
-        except Exception:
+        df = pd.DataFrame()
+        for sep in [",", ";", "\t", "|"]:
             try:
-                return pd.read_csv(file_path, sep=";", on_bad_lines="skip")
+                temp_df = pd.read_csv(file_path, sep=sep, on_bad_lines="skip")
+                if len(temp_df.columns) > 2:
+                    df = temp_df
+                    break
             except Exception:
-                return pd.read_csv(file_path, sep="\t", on_bad_lines="skip")
+                pass
+
+        if df.empty:
+            try:
+                df = pd.read_csv(file_path, on_bad_lines="skip", header=None)
+            except Exception:
+                return pd.DataFrame()
+
+        return cls._find_header_and_normalize(df)
 
     @classmethod
     def _parse_excel(cls, file_path: str) -> pd.DataFrame:
-        return pd.read_excel(file_path)
+        df = pd.DataFrame()
+
+        # 1. Try reading all sheets with default openpyxl
+        try:
+            excel_file = pd.ExcelFile(file_path)
+            for sheet in excel_file.sheet_names:
+                try:
+                    sheet_df = pd.read_excel(file_path, sheet_name=sheet)
+                    normalized = cls._find_header_and_normalize(sheet_df)
+                    if len(normalized) >= 1:
+                        df = normalized
+                        break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        # 2. Try HTML table fallback (many Indian bank .xls files are actually HTML table dumps)
+        if df.empty:
+            try:
+                tables = pd.read_html(file_path)
+                if tables:
+                    for tbl in tables:
+                        norm = cls._find_header_and_normalize(tbl)
+                        if len(norm) > len(df):
+                            df = norm
+            except Exception:
+                pass
+
+        # 3. Try xlrd or csv fallback
+        if df.empty:
+            try:
+                df = pd.read_excel(file_path, engine="xlrd")
+                df = cls._find_header_and_normalize(df)
+            except Exception:
+                try:
+                    df = cls._parse_csv(file_path)
+                except Exception:
+                    pass
+
+        return df
 
     @classmethod
     def _parse_pdf(cls, file_path: str) -> tuple[pd.DataFrame, str]:
@@ -115,14 +217,14 @@ class StatementParser:
                 text = page.extract_text()
                 if text:
                     raw_text += text + "\n"
-                
+
                 tables = page.extract_tables()
                 for table in tables:
                     for row in table:
                         if row and any(cell and str(cell).strip() for cell in row):
                             all_tables_rows.append([str(c).strip() if c is not None else "" for c in row])
 
-        # 1. Try borderless text regex parser first (handles Paytm UPI & card style statements)
+        # 1. Try borderless text regex parser first (handles Paytm UPI & digital wallet statements)
         df_borderless = cls._parse_borderless_text_pdf(raw_text)
         if len(df_borderless) >= 2:
             return df_borderless, raw_text
@@ -130,7 +232,7 @@ class StatementParser:
         # 2. Try standard grid table parser
         if len(all_tables_rows) >= 2:
             header_idx = -1
-            for idx, row in enumerate(all_tables_rows[:10]):
+            for idx, row in enumerate(all_tables_rows[:15]):
                 row_str = " ".join(row).lower()
                 if any(h in row_str for h in ["date", "particulars", "narration", "description", "withdrawal", "deposit", "debit", "credit", "amount"]):
                     header_idx = idx
@@ -212,7 +314,33 @@ class StatementParser:
         return pd.DataFrame()
 
     @classmethod
+    def _clean_amount(cls, val) -> float:
+        if pd.isna(val):
+            return 0.0
+        val_str = str(val).strip()
+        if not val_str or val_str.lower() in ["nan", "none", "-", "null", "nil", ""]:
+            return 0.0
+
+        is_negative = False
+        if val_str.startswith("(") and val_str.endswith(")"):
+            is_negative = True
+            val_str = val_str[1:-1]
+        elif "dr" in val_str.lower() and not "cr" in val_str.lower():
+            pass
+
+        val_clean = re.sub(r"[^\d.-]", "", val_str.replace(",", ""))
+        try:
+            num = float(val_clean)
+            return -num if is_negative else num
+        except ValueError:
+            return 0.0
+
+    @classmethod
     def _standerdize_dataframe(cls, df: pd.DataFrame) -> pd.DataFrame:
+        if df is None or df.empty:
+            return pd.DataFrame()
+
+        # If already pre-standardized (e.g. from borderless parser)
         if "description" in df.columns and ("debit" in df.columns or "credit" in df.columns):
             df["debit"] = pd.to_numeric(df["debit"], errors="coerce").fillna(0.0)
             df["credit"] = pd.to_numeric(df["credit"], errors="coerce").fillna(0.0)
@@ -224,60 +352,97 @@ class StatementParser:
             col_lower = str(col).lower().strip()
             tokens = set(re.findall(r"[a-z0-9]+", col_lower))
 
-            if ("date" not in mapping) and any(k in col_lower for k in ["date", "txn_dt", "val_dt"]):
+            if ("date" not in mapping) and any(k in col_lower for k in ["date", "txn_dt", "val_dt", "txn date", "value date", "post date"]):
                 mapping["date"] = col
-            elif ("description" not in mapping) and any(k in col_lower for k in ["narration", "description", "particulars", "remarks", "details", "desc", "transaction"]):
+            elif ("description" not in mapping) and any(k in col_lower for k in [
+                "narration", "description", "particulars", "remarks", "details", "desc",
+                "transaction particulars", "transaction details", "party", "payee", "beneficiary", "merchant"
+            ]):
                 mapping["description"] = col
-            elif ("debit" not in mapping) and (any(k in col_lower for k in ["withdrawal", "debit", "withdraw"]) or tokens.intersection({"dr", "debit", "withdrawal"})):
+            elif ("debit" not in mapping) and (
+                any(k in col_lower for k in ["withdrawal", "debit", "withdraw", "dr.", "dr amount", "money out", "paid out"])
+                or tokens.intersection({"dr", "debit", "withdrawal", "withdrawals"})
+            ):
                 mapping["debit"] = col
-            elif ("credit" not in mapping) and (any(k in col_lower for k in ["deposit", "credit"]) or tokens.intersection({"cr", "credit", "deposit"})):
+            elif ("credit" not in mapping) and (
+                any(k in col_lower for k in ["deposit", "credit", "cr.", "cr amount", "money in", "paid in", "deposits"])
+                or tokens.intersection({"cr", "credit", "deposit", "deposits"})
+            ):
                 mapping["credit"] = col
-            elif ("balance" not in mapping) and any(k in col_lower for k in ["balance", "bal", "closing"]):
+            elif ("balance" not in mapping) and any(k in col_lower for k in ["balance", "bal", "closing", "running bal", "avail bal"]):
                 mapping["balance"] = col
-            elif ("amount" not in mapping) and any(k in col_lower for k in ["amount", "amt", "txn_amt"]):
+            elif ("amount" not in mapping) and any(k in col_lower for k in ["amount", "amt", "txn_amt", "net amount"]):
                 mapping["amount"] = col
+            elif ("type" not in mapping) and (any(k in col_lower for k in ["type", "cr_dr", "dr_cr", "cr/dr", "dr/cr", "indicator"]) or tokens.intersection({"type"})):
+                mapping["type"] = col
+
+        # If date or description not mapped, attempt positional fallback
+        if "description" not in mapping and len(df.columns) >= 2:
+            # Pick longest text column as description
+            text_cols = [c for c in df.columns if c not in mapping.values()]
+            if text_cols:
+                mapping["description"] = text_cols[0]
+
+        if "date" not in mapping and len(df.columns) >= 1:
+            for c in df.columns:
+                if c != mapping.get("description"):
+                    mapping["date"] = c
+                    break
 
         standard_df = pd.DataFrame()
         standard_df["date"] = df[mapping["date"]].astype(str) if "date" in mapping else ""
         standard_df["description"] = df[mapping["description"]].astype(str) if "description" in mapping else ""
 
-        def clean_amount(val):
-            if pd.isna(val):
-                return 0.0
-            val_str = str(val).replace(",", "").replace("INR", "").replace("₹", "").replace("Rs.", "").replace("Rs", "").strip()
-            val_str = re.sub(r"[^\d.-]", "", val_str)
-            try:
-                return float(val_str) if val_str else 0.0
-            except ValueError:
-                return 0.0
-
         if "debit" in mapping or "credit" in mapping:
-            standard_df["debit"] = df[mapping["debit"]].apply(clean_amount) if "debit" in mapping else 0.0
-            standard_df["credit"] = df[mapping["credit"]].apply(clean_amount) if "credit" in mapping else 0.0
+            standard_df["debit"] = df[mapping["debit"]].apply(cls._clean_amount) if "debit" in mapping else 0.0
+            standard_df["credit"] = df[mapping["credit"]].apply(cls._clean_amount) if "credit" in mapping else 0.0
         elif "amount" in mapping:
-            raw_amounts = df[mapping["amount"]].astype(str)
+            raw_amounts = df[mapping["amount"]]
+            type_series = df[mapping["type"]].astype(str).str.upper() if "type" in mapping else None
+
             debit_list = []
             credit_list = []
-            for raw_val in raw_amounts:
-                num = clean_amount(raw_val)
-                if raw_val.strip().startswith("+"):
-                    credit_list.append(num)
+            for i, raw_val in enumerate(raw_amounts):
+                num = cls._clean_amount(raw_val)
+                row_type = type_series.iloc[i] if type_series is not None and i < len(type_series) else ""
+
+                if "CR" in row_type or "CREDIT" in row_type or str(raw_val).strip().startswith("+"):
+                    credit_list.append(abs(num))
                     debit_list.append(0.0)
-                elif raw_val.strip().startswith("-") or num < 0:
+                elif "DR" in row_type or "DEBIT" in row_type or str(raw_val).strip().startswith("-") or num < 0:
                     debit_list.append(abs(num))
                     credit_list.append(0.0)
                 else:
-                    credit_list.append(num)
+                    # Default positive without indicator -> debit if spend/transfer, credit if default
+                    credit_list.append(abs(num))
                     debit_list.append(0.0)
+
             standard_df["debit"] = debit_list
             standard_df["credit"] = credit_list
         else:
             standard_df["debit"] = 0.0
             standard_df["credit"] = 0.0
 
-        standard_df["balance"] = df[mapping["balance"]].apply(clean_amount) if "balance" in mapping else 0.0
-        standard_df = standard_df[standard_df["description"].astype(str).str.strip() != ""]
-        return standard_df.reset_index(drop=True)
+        standard_df["balance"] = df[mapping["balance"]].apply(cls._clean_amount) if "balance" in mapping else 0.0
+
+        # Filter out non-transaction / footer / header rows
+        filter_mask = []
+        for _, row in standard_df.iterrows():
+            d_val = str(row["date"]).strip().lower()
+            desc_val = str(row["description"]).strip().lower()
+            dr_val = float(row["debit"])
+            cr_val = float(row["credit"])
+
+            is_empty = (desc_val in ["", "nan", "none", "null"]) or (d_val in ["", "nan", "none", "null"] and dr_val == 0.0 and cr_val == 0.0)
+            is_summary = any(s in desc_val for s in [
+                "total withdrawal", "total deposit", "opening balance", "closing balance",
+                "statement summary", "*** end", "page 1 of", "generated on", "disclaimer"
+            ]) or (d_val in ["total", "subtotal", "opening balance", "closing balance"])
+
+            filter_mask.append(not is_empty and not is_summary and (dr_val > 0 or cr_val > 0 or len(desc_val) > 2))
+
+        filtered_df = standard_df[filter_mask].reset_index(drop=True)
+        return filtered_df
 
     @classmethod
     def _detect_bank(cls, filename: str, raw_text: str) -> str:
@@ -295,9 +460,9 @@ class StatementParser:
 
         if "date" not in df.columns:
             return "Current Month"
-        dates = [str(d).strip() for d in df["date"].dropna() if str(d).strip() and str(d).strip().lower() != "nan"]
+        dates = [str(d).strip() for d in df["date"].dropna() if str(d).strip() and str(d).strip().lower() not in ["nan", "none", ""]]
         if len(dates) >= 2:
-            return f"{dates[-1]} to {dates[0]}" if "mar" in dates[0].lower() else f"{dates[0]} to {dates[-1]}"
+            return f"{dates[0]} to {dates[-1]}"
         elif len(dates) == 1:
             return dates[0]
         return "Current Month"
