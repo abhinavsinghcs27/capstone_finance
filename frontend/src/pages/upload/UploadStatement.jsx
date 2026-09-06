@@ -5,7 +5,9 @@ import {
   FileUp,
   ShieldCheck,
   CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
+import api from "../../services/api";
 
 import FileDropzone from "../../components/upload/FileDropzone";
 import ParsingProgress from "../../components/upload/ParsingProgress";
@@ -17,40 +19,126 @@ const UploadStatement = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [currentStep, setCurrentStep] = useState("upload");
   const [extractedData, setExtractedData] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isApiDone, setIsApiDone] = useState(false);
+  const [isAnimDone, setIsAnimDone] = useState(false);
+
+  // Transition to review when both API and animation are finished
+  useEffect(() => {
+    if (isApiDone && isAnimDone && extractedData && currentStep === "parsing") {
+      setCurrentStep("review");
+    }
+  }, [isApiDone, isAnimDone, extractedData, currentStep]);
 
   const handleFileSelect = (file) => {
     setSelectedFile(file);
+    setErrorMessage("");
   };
 
-  const handleStartUpload = () => {
+  const handleStartUpload = async () => {
     if (!selectedFile) return;
 
+    setErrorMessage("");
+    setIsApiDone(false);
+    setIsAnimDone(false);
+    setExtractedData(null);
     setCurrentStep("parsing");
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const response = await api.post("/user-data/upload-statement", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.data && response.data.success) {
+        setExtractedData(response.data);
+        setIsApiDone(true);
+      } else {
+        throw new Error(response.data?.message || "Failed to parse bank statement");
+      }
+    } catch (error) {
+      console.error("Statement upload/parse error:", error);
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "An error occurred while processing the statement. Please ensure it is a valid bank statement (PDF, Excel, or CSV).";
+      setErrorMessage(msg);
+      setCurrentStep("upload");
+    }
   };
 
-  const handleParsingComplete = () => {
-    // Temporary sample data.
-    // This will later come from the statement parsing API.
-    setExtractedData({
-      monthlyIncome: 85000,
-      monthlyExpenses: 42000,
-      investments: 180000,
-      savings: 25000,
-    });
-
-    setCurrentStep("review");
+  const handleParsingAnimationComplete = () => {
+    setIsAnimDone(true);
   };
 
-  const handleConfirmData = (confirmedData) => {
-    console.log("Confirmed financial data:", confirmedData);
 
-    // API/database integration will be added here.
-    setCurrentStep("success");
+  const handleConfirmData = async (confirmedData) => {
+    setIsSaving(true);
+    setErrorMessage("");
+
+    try {
+      const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const payload = {
+        email: savedUser.email || "",
+        name: savedUser.name || "User",
+        age: Number(savedUser.age || 28),
+        employmentType: savedUser.employmentType || savedUser.employment_type || "salaried",
+        financialGoals: savedUser.financialGoals || savedUser.financial_goals || "wealth",
+        maritalStatus: savedUser.maritalStatus || savedUser.marital_status || "single",
+        dependents: Number(confirmedData.dependents || savedUser.dependents || 0),
+
+        monthlyIncome: Number(confirmedData.monthlyIncome || 0),
+        otherIncome: Number(confirmedData.otherIncome || 0),
+        fixedExpenses: Number(confirmedData.fixedExpenses || 0),
+        variableExpenses: Number(confirmedData.variableExpenses || 0),
+        existingDebt: Number(confirmedData.existingDebt || 0),
+        currentSavings: Number(confirmedData.currentSavings || 0),
+        emergencyFund: Number(confirmedData.emergencyFund || 0),
+        stocks: Number(confirmedData.stocks || 0),
+        mutualFunds: Number(confirmedData.mutualFunds || 0),
+        fixedDeposit: Number(confirmedData.fixedDeposit || 0),
+        gold: Number(confirmedData.gold || 0),
+        insurance: confirmedData.insurance || savedUser.insurance || "Standard Life & Health",
+        otherInvestments: Number(confirmedData.otherInvestments || 0),
+        riskTolerance: confirmedData.riskTolerance || savedUser.riskTolerance || "Moderate",
+      };
+
+      const res = await api.post("/user-data", payload);
+
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || "Failed to sync financial profile");
+      }
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          ...savedUser,
+          name: payload.name,
+        })
+      );
+
+      setCurrentStep("success");
+    } catch (error) {
+      console.error("Profile sync error:", error);
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to save profile. Please try again.";
+      setErrorMessage(msg);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleUploadAnother = () => {
     setSelectedFile(null);
     setExtractedData(null);
+    setErrorMessage("");
     setCurrentStep("upload");
   };
 
@@ -70,8 +158,18 @@ const UploadStatement = () => {
         Back to dashboard
       </button>
 
-      {/* ================= UPLOAD ================= */}
+      {/* Error alert if any */}
+      {errorMessage && currentStep === "upload" && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+          <AlertCircle size={20} className="shrink-0 text-rose-600" />
+          <div>
+            <p className="font-semibold">Unable to process document</p>
+            <p className="mt-0.5 text-xs text-rose-700">{errorMessage}</p>
+          </div>
+        </div>
+      )}
 
+      {/* ================= UPLOAD ================= */}
       {currentStep === "upload" && (
         <div>
           <div className="mb-8 max-w-2xl">
@@ -85,7 +183,7 @@ const UploadStatement = () => {
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
-              Upload your bank statement or financial document and FinanceAI
+              Upload your bank statement (PDF, Excel, or CSV) and FinanceAI
               will securely extract and organize your financial information.
             </p>
           </div>
@@ -121,28 +219,38 @@ const UploadStatement = () => {
       )}
 
       {/* ================= PARSING ================= */}
-
       {currentStep === "parsing" && (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
           <ParsingProgress
             isParsing={true}
-            onComplete={handleParsingComplete}
+            onComplete={handleParsingAnimationComplete}
           />
         </div>
       )}
 
       {/* ================= REVIEW ================= */}
-
       {currentStep === "review" && extractedData && (
-        <ExtractedDataPreview
-          data={extractedData}
-          onBack={handleUploadAnother}
-          onConfirm={handleConfirmData}
-        />
+        <div>
+          {errorMessage && (
+            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+              <AlertCircle size={20} className="shrink-0 text-rose-600" />
+              <div>
+                <p className="font-semibold">Failed to save profile</p>
+                <p className="mt-0.5 text-xs text-rose-700">{errorMessage}</p>
+              </div>
+            </div>
+          )}
+
+          <ExtractedDataPreview
+            data={extractedData}
+            onBack={handleUploadAnother}
+            onConfirm={handleConfirmData}
+            isSaving={isSaving}
+          />
+        </div>
       )}
 
       {/* ================= SUCCESS ================= */}
-
       {currentStep === "success" && (
         <div className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-12">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
@@ -181,4 +289,4 @@ const UploadStatement = () => {
   );
 };
 
-export default UploadStatement;
+export default UploadStatement;
