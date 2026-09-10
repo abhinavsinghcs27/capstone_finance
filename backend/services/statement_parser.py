@@ -10,20 +10,6 @@ class StatementParser:
     categorize financial flows, and synthesize the profile required by FinanceAI."""
 
     SALARY_KEYWORDS = ["SALARY", "PAYROLL", "DIRECT DEP", "STIPEND", "WAGES", "HONORARIUM"]
-<<<<<<< HEAD
-    OTHER_INFLOW_KEYWORDS = ["NEFT CR", "ACH CR", "CREDIT INTEREST", "DIVIDEND", "DIVIDENT", "REFUND", "CASHBACK", "UPI CR", "INTEREST", "REVERSAL"]
-    INFLOW_KEYWORDS = SALARY_KEYWORDS + OTHER_INFLOW_KEYWORDS
-    INVESTMENT_KEYWORDS = [
-        "MUTUAL FUND", "MF", "SIP", "ZERODHA", "GROWW", "INDMONEY", "UPSTOX", "NSE", "BSE",
-        "SECURITIES", "STOCK", "ETMONEY", "COIN", "PPF", "NPS", "FD", "DEPOSIT", "KIMS", "CAMS", "KARVY"
-    ]
-    FIXED_EXPENSE_KEYWORDS = [
-        "EMI", "LOAN", "HOUSING", "RENT", "LIC", "BAJAJ FIN", "INSURANCE", "PREMIUM", "MAINTENANCE", "BILL"
-    ]
-    VARIBLE_KEYWORDS = [
-        "UPI", "SWIGGY", "ZOMATO", "AMAZON", "FLIPKART", "GROCERY", "BLINKIT", "ZEPTO", "UBER", "OLA", "PAYTM",
-        "RESTAURANT", "CAFE", "FUEL", "PETROL", "CINEMA", "BOOKMYSHOW", "SHOPPING", "RETAIL"
-=======
     OTHER_INFLOW_KEYWORDS = [
         "NEFT CR", "ACH CR", "CREDIT INTEREST", "DIVIDEND", "DIVIDENT", "REFUND",
         "CASHBACK", "UPI CR", "INTEREST", "REVERSAL", "RECEIVED FROM", "MONEY RECEIVED",
@@ -45,7 +31,6 @@ class StatementParser:
         "RESTAURANT", "CAFE", "FUEL", "PETROL", "CINEMA", "BOOKMYSHOW", "SHOPPING", "RETAIL", "RAPIDO",
         "FOOD", "ENTERTAINMENT", "SPOTIFY", "YOUTUBE", "MONEY SENT", "PAID TO", "TRANSFER TO", "INSTAMART",
         "BIGBASKET", "MYNTRA", "AJIO", "TATA 1MG", "PHARMEASY", "APOLLO"
->>>>>>> backend
     ]
     VARIABLE_KEYWORDS = VARIBLE_KEYWORDS
 
@@ -69,10 +54,6 @@ class StatementParser:
     @classmethod
     def parse(cls, file_path: str) -> dict:
         """Main entrypoint. Inspects file type, parses raw transactions, applies classification rules, and aggregates profile parameters."""
-<<<<<<< HEAD
-
-=======
->>>>>>> backend
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
@@ -114,15 +95,10 @@ class StatementParser:
                 "statement_period": statement_period
             },
             "extraction_profile": extracted_profile,
-<<<<<<< HEAD
-            "sample_transactions": sample_transactions,
-            "simple_transactions": sample_transactions
-=======
             "extracted_profile": extracted_profile,
             "sample_transactions": sample_transactions,
             "simple_transactions": sample_transactions,
             "transactions": categorized_transactions
->>>>>>> backend
         }
 
     @classmethod
@@ -169,16 +145,6 @@ class StatementParser:
 
     @classmethod
     def _parse_csv(cls, file_path: str) -> pd.DataFrame:
-<<<<<<< HEAD
-        try:
-            return pd.read_csv(file_path)
-        except Exception:
-            return pd.read_csv(file_path, skiprows=10)
-
-    @classmethod
-    def _parse_excel(cls, file_path: str) -> pd.DataFrame:
-        return pd.read_excel(file_path)
-=======
         df = pd.DataFrame()
         for sep in [",", ";", "\t", "|"]:
             try:
@@ -240,7 +206,6 @@ class StatementParser:
                     pass
 
         return df
->>>>>>> backend
 
     @classmethod
     def _parse_pdf(cls, file_path: str) -> tuple[pd.DataFrame, str]:
@@ -253,38 +218,6 @@ class StatementParser:
                 if text:
                     raw_text += text + "\n"
 
-<<<<<<< HEAD
-                tables = page.extract_tables() or []
-                for table in tables:
-                    for row in table:
-                        if row:
-                            cleaned = [str(c).strip() if c is not None else "" for c in row]
-                            if any(cleaned):
-                                all_row.append(cleaned)
-
-        raw_text_str = "\n".join(full_text)
-        if not all_row:
-            return pd.DataFrame(), raw_text_str
-
-        header_idx = 0
-        for i, row in enumerate(all_row[:15]):
-            row_str = " ".join(row).lower()
-            keywords = [
-                "date",
-                "narration",
-                "description",
-                "particulars",
-                "withdrawal",
-                "deposit",
-                "debit",
-                "credit"
-            ]
-
-            found = any(k in row_str for k in keywords)
-            if found:
-                header_idx = i
-                break
-=======
                 tables = page.extract_tables()
                 for table in tables:
                     for row in table:
@@ -317,7 +250,6 @@ class StatementParser:
                     else:
                         seen[h_clean] = 0
                         clean_headers.append(h_clean)
->>>>>>> backend
 
                 data_rows = all_tables_rows[header_idx + 1:]
                 norm_rows = []
@@ -405,16 +337,8 @@ class StatementParser:
 
     @classmethod
     def _standerdize_dataframe(cls, df: pd.DataFrame) -> pd.DataFrame:
-<<<<<<< HEAD
-        """Standardize various column naming conventions across different banks."""
-        cleaned_cols = [re.sub(r'[^a-zA-Z0-9]', '_', str(c).strip().lower()) for c in df.columns]
-        df.columns = cleaned_cols
-
-        mapping = {}
-=======
         if df is None or df.empty:
             return pd.DataFrame()
->>>>>>> backend
 
         # If already pre-standardized (e.g. from borderless parser)
         if "description" in df.columns and ("debit" in df.columns or "credit" in df.columns):
@@ -425,25 +349,6 @@ class StatementParser:
 
         mapping = {}
         for col in df.columns:
-<<<<<<< HEAD
-            col_lower = col.lower().strip()
-            tokens = set(re.findall(r'[a-z0-9]+', col_lower))
-
-            if ("date" not in mapping) and any(k in col_lower for k in ["date", "txn_dt", "val_dt"]):
-                mapping["date"] = col
-            elif ("description" not in mapping) and any(k in col_lower for k in ["narration", "description", "particulars", "remarks", "details", "desc"]):
-                mapping["description"] = col
-            elif ("debit" not in mapping) and (any(k in col_lower for k in ["withdrawal", "debit", "withdraw"]) or tokens.intersection({"dr", "debit", "withdrawal"})):
-                mapping["debit"] = col
-            elif ("credit" not in mapping) and (any(k in col_lower for k in ["deposit", "credit"]) or tokens.intersection({"cr", "credit", "deposit"})):
-                mapping["credit"] = col
-            elif ("balance" not in mapping) and any(k in col_lower for k in ["balance", "bal", "closing"]):
-                mapping["balance"] = col
-            elif ("amount" not in mapping) and any(k in col_lower for k in ["amount", "amt", "txn_amt"]):
-                mapping["amount"] = col
-            elif ("type" not in mapping) and (any(k in col_lower for k in ["type", "cr_dr", "dr_cr"]) or tokens.intersection({"type"})):
-                mapping["type"] = col
-=======
             col_lower = str(col).lower().strip()
             tokens = set(re.findall(r"[a-z0-9]+", col_lower))
 
@@ -483,51 +388,11 @@ class StatementParser:
                 if c != mapping.get("description"):
                     mapping["date"] = c
                     break
->>>>>>> backend
 
         standard_df = pd.DataFrame()
         standard_df["date"] = df[mapping["date"]].astype(str) if "date" in mapping else ""
         standard_df["description"] = df[mapping["description"]].astype(str) if "description" in mapping else ""
 
-<<<<<<< HEAD
-        def clean_amount(val):
-            if pd.isna(val):
-                return 0.0
-            val_str = str(val).replace(",", "").replace("INR", "").replace("₹", "").replace("Rs.", "").replace("Rs", "").strip()
-            val_str = re.sub(r'[^\d.-]', '', val_str)
-            try:
-                return float(val_str) if val_str else 0.0
-            except ValueError:
-                return 0.0
-
-        if "debit" in mapping or "credit" in mapping:
-            standard_df["debit"] = df[mapping["debit"]].apply(clean_amount) if "debit" in mapping else 0.0
-            standard_df["credit"] = df[mapping["credit"]].apply(clean_amount) if "credit" in mapping else 0.0
-        elif "amount" in mapping:
-            amounts = df[mapping["amount"]].apply(clean_amount)
-            if "type" in mapping:
-                types = df[mapping["type"]].astype(str).str.upper()
-                debit_list = []
-                credit_list = []
-                for amt, t in zip(amounts, types):
-                    if "DR" in t or "DEBIT" in t:
-                        debit_list.append(abs(amt))
-                        credit_list.append(0.0)
-                    elif "CR" in t or "CREDIT" in t:
-                        debit_list.append(0.0)
-                        credit_list.append(abs(amt))
-                    elif amt < 0:
-                        debit_list.append(abs(amt))
-                        credit_list.append(0.0)
-                    else:
-                        debit_list.append(0.0)
-                        credit_list.append(abs(amt))
-                standard_df["debit"] = debit_list
-                standard_df["credit"] = credit_list
-            else:
-                standard_df["debit"] = amounts.apply(lambda x: abs(x) if x < 0 else 0.0)
-                standard_df["credit"] = amounts.apply(lambda x: x if x > 0 else 0.0)
-=======
         if "debit" in mapping or "credit" in mapping:
             standard_df["debit"] = df[mapping["debit"]].apply(cls._clean_amount) if "debit" in mapping else 0.0
             standard_df["credit"] = df[mapping["credit"]].apply(cls._clean_amount) if "credit" in mapping else 0.0
@@ -554,16 +419,10 @@ class StatementParser:
 
             standard_df["debit"] = debit_list
             standard_df["credit"] = credit_list
->>>>>>> backend
         else:
             standard_df["debit"] = 0.0
             standard_df["credit"] = 0.0
 
-<<<<<<< HEAD
-        standard_df["balance"] = df[mapping["balance"]].apply(clean_amount) if "balance" in mapping else 0.0
-        standard_df = standard_df[standard_df["description"].astype(str).str.strip() != ""]
-        return standard_df.reset_index(drop=True)
-=======
         standard_df["balance"] = df[mapping["balance"]].apply(cls._clean_amount) if "balance" in mapping else 0.0
 
         # Filter out non-transaction / footer / header rows
@@ -584,7 +443,6 @@ class StatementParser:
 
         filtered_df = standard_df[filter_mask].reset_index(drop=True)
         return filtered_df
->>>>>>> backend
 
     @classmethod
     def _detect_bank(cls, filename: str, raw_text: str) -> str:
@@ -595,12 +453,6 @@ class StatementParser:
         return "Generic Bank Statement"
 
     @classmethod
-<<<<<<< HEAD
-    def _extract_period(cls, df: pd.DataFrame) -> str:
-        if "date" not in df.columns:
-            return "Current Month"
-        dates = [str(d).strip() for d in df["date"].dropna() if str(d).strip() and str(d).strip().lower() != "nan"]
-=======
     def _extract_period(cls, df: pd.DataFrame, raw_text: str = "") -> str:
         upi_period = re.search(r"(\d{1,2}\s+[A-Za-z]{3}(?:'\d{2,4})?\s*-\s*\d{1,2}\s+[A-Za-z]{3}(?:'\d{2,4})?)", raw_text)
         if upi_period:
@@ -609,7 +461,6 @@ class StatementParser:
         if "date" not in df.columns:
             return "Current Month"
         dates = [str(d).strip() for d in df["date"].dropna() if str(d).strip() and str(d).strip().lower() not in ["nan", "none", ""]]
->>>>>>> backend
         if len(dates) >= 2:
             return f"{dates[0]} to {dates[-1]}"
         elif len(dates) == 1:
@@ -662,13 +513,11 @@ class StatementParser:
         investments = [t["amount"] for t in categorized_transactions if t["category"] == "Investment"]
 
         monthly_income = max(salary_credits) if salary_credits else (sum(other_credits) if other_credits else 50000.0)
-        other_income = sum(other_credits) if salary_credits else (sum(other_credits) - monthly_income if sum(other_credits) > monthly_income else 0.0)
+        other_income = sum(other_credits) if salary_credits else 0.0
         fixed_expenses = sum(fixed_debits)
         variable_expenses = sum(variable_debits)
         existing_debt = sum([t["amount"] for t in categorized_transactions if any(k in str(t["description"]).upper() for k in ["EMI", "LOAN"])])
 
-<<<<<<< HEAD
-=======
         paid_match = re.search(r"Total Money Paid\s*-\s*Rs\.?\s*([\d,]+(?:\.\d{2})?)", raw_text, re.I)
         recv_match = re.search(r"Total Money Received\s*\+\s*Rs\.?\s*([\d,]+(?:\.\d{2})?)", raw_text, re.I)
 
@@ -678,7 +527,6 @@ class StatementParser:
         if paid_match and variable_expenses == 0.0:
             variable_expenses = float(paid_match.group(1).replace(",", ""))
 
->>>>>>> backend
         non_zero_balances = df[df["balance"] > 0]["balance"].tolist() if "balance" in df.columns else []
         current_savings = non_zero_balances[-1] if non_zero_balances else 25000.0
         emergency_fund = current_savings * 0.75
@@ -701,10 +549,3 @@ class StatementParser:
             "dependents": 1,
             "insurance": "Standard Life & Health"
         }
-<<<<<<< HEAD
-
-        
-
-
-=======
->>>>>>> backend

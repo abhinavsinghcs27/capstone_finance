@@ -9,10 +9,8 @@ profile_bp = Blueprint("profile", __name__)
 UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "uploads")
 
 
-
 @profile_bp.route("", methods=["GET"])
 @profile_bp.route("/", methods=["GET"])
-@profile_bp.route("/dashboard", methods=["GET"])
 def get_user_data():
     email = request.args.get("email", "").strip().lower()
     result = ProfileService.get_profile(email=email if email else None)
@@ -58,20 +56,6 @@ def upload_statement():
     if not file or not file.filename:
         return jsonify({"success": False, "message": "No file selected"}), 400
 
-<<<<<<< HEAD
-    from werkzeug.utils import secure_filename
-    from services.statement_parser import StatementParser
-
-    upload_dir = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "uploads")
-    os.makedirs(upload_dir, exist_ok=True)
-
-    filename = secure_filename(file.filename)
-    temp_path = os.path.join(upload_dir, filename)
-    file.save(temp_path)
-
-    try:
-        result = StatementParser.parse(temp_path)
-=======
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     filename = secure_filename(file.filename)
     file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -79,20 +63,13 @@ def upload_statement():
 
     try:
         result = StatementParser.parse(file_path)
->>>>>>> backend
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 400
     finally:
-<<<<<<< HEAD
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-=======
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
->>>>>>> backend
             except Exception:
                 pass
 
