@@ -1,8 +1,12 @@
 import os
 from flask import Blueprint, jsonify, request
+from werkzeug.utils import secure_filename
 from services.profile_service import ProfileService
+from services.statement_parser import StatementParser
 
 profile_bp = Blueprint("profile", __name__)
+
+UPLOAD_FOLDER = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "uploads")
 
 
 
@@ -54,6 +58,7 @@ def upload_statement():
     if not file or not file.filename:
         return jsonify({"success": False, "message": "No file selected"}), 400
 
+<<<<<<< HEAD
     from werkzeug.utils import secure_filename
     from services.statement_parser import StatementParser
 
@@ -66,13 +71,28 @@ def upload_statement():
 
     try:
         result = StatementParser.parse(temp_path)
+=======
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(file_path)
+
+    try:
+        result = StatementParser.parse(file_path)
+>>>>>>> backend
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 400
     finally:
+<<<<<<< HEAD
         if os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
+=======
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+>>>>>>> backend
             except Exception:
                 pass
 
