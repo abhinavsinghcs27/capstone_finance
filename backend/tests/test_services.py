@@ -50,6 +50,19 @@ class TestServices(unittest.TestCase):
         self.assertIn("insights", res)
         self.assertIsInstance(res["insights"], list)
 
+    def test_budget_service(self):
+        from services.budget_service import BudgetService
+        res = BudgetService.get_budgets("demo@financeai.com")
+        self.assertTrue(res["success"])
+        self.assertIn("budgets", res)
+        self.assertIn("summary", res)
+        self.assertGreater(len(res["budgets"]), 0)
+
+        # Test save budget
+        saved = BudgetService.save_budget("demo@financeai.com", "Food", 20000)
+        self.assertTrue(saved["success"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

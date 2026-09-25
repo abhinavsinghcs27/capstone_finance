@@ -8,6 +8,7 @@ from services.statement_parser import StatementParser
 from services.stock_recommender import StockRecommenderService
 from services.transaction_service import TransactionService
 from services.goals_service import GoalsService
+from services.budget_service import BudgetService
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -339,4 +340,54 @@ def simulate_fire():
             "success": False,
             "message": f"FIRE simulation error: {str(e)}"
         }), 400
+
+
+# ------------------------------------------------------------
+# Budgeting & Category Spend Limits Endpoints
+# ------------------------------------------------------------
+
+@profile_bp.route("/budgets", methods=["GET"])
+def get_budgets():
+    """GET /user-data/budgets?email=user@example.com"""
+    email = request.args.get("email", "").strip().lower()
+    result = BudgetService.get_budgets(email=email)
+    return jsonify(result), 200
+
+
+@profile_bp.route("/budgets", methods=["POST"])
+def save_budget():
+    """POST /user-data/budgets
+    Body: { email: "...", category: "...", limit: 15000 }
+    """
+    data = request.get_json() or {}
+    email = data.get("email", "").strip().lower()
+    category = data.get("category", "").strip()
+    limit = data.get("limit")
+
+    if not category or limit is None:
+        return jsonify({
+            "success": False,
+            "message": "Category and valid limit amount are required."
+        }), 400
+
+    result = BudgetService.save_budget(email=email, category=category, limit=limit)
+    status_code = 200 if result.get("success") else 400
+    return jsonify(result), status_code
+
+
+@profile_bp.route("/budgets", methods=["DELETE"])
+def delete_budget():
+    """DELETE /user-data/budgets?email=user@example.com&category=Food"""
+    email = request.args.get("email", "").strip().lower()
+    category = request.args.get("category", "").strip()
+
+    if not category:
+        return jsonify({
+            "success": False,
+            "message": "Category name is required to delete budget limit."
+        }), 400
+
+    result = BudgetService.delete_budget(email=email, category=category)
+    return jsonify(result), 200
+
 
