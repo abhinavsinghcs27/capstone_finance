@@ -1,1 +1,2 @@
 name,email,password_hash,auth_type
+Aditya Sharma,demo@financeai.com,scrypt:32768:8:1$bpvIUE5iLUs41jwG$36449420a3663cb35c6e52ad6772d7ddb406583072c51412fb3195e53c84bd90f6e4803ec1a25a884a3a8f0505bfdb9c9ed4568ee58f5c015df7c022a13b9678,local

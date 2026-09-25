@@ -83,8 +83,9 @@ const UploadStatement = () => {
 
     try {
       const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const userEmail = savedUser.email || "";
       const payload = {
-        email: savedUser.email || "",
+        email: userEmail,
         name: savedUser.name || "User",
         age: Number(savedUser.age || 28),
         employmentType: savedUser.employmentType || savedUser.employment_type || "salaried",
@@ -112,6 +113,24 @@ const UploadStatement = () => {
 
       if (!res.data?.success) {
         throw new Error(res.data?.message || "Failed to sync financial profile");
+      }
+
+      // Persist all extracted statement transactions to live ledger
+      const allTransactions =
+        extractedData?.transactions ||
+        extractedData?.sample_transactions ||
+        extractedData?.simple_transactions ||
+        [];
+
+      if (allTransactions.length > 0 && userEmail) {
+        try {
+          await api.post("/user-data/transactions", {
+            email: userEmail,
+            transactions: allTransactions,
+          });
+        } catch (txnError) {
+          console.error("Failed to persist transactions to ledger:", txnError);
+        }
       }
 
       localStorage.setItem(
