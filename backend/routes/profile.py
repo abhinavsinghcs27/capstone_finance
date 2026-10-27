@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, Response
 from werkzeug.utils import secure_filename
 from services.ai_advisor_service import AIAdvisorService
 from services.market_data_service import MarketDataService
@@ -9,6 +9,7 @@ from services.stock_recommender import StockRecommenderService
 from services.transaction_service import TransactionService
 from services.goals_service import GoalsService
 from services.budget_service import BudgetService
+from services.report_service import ReportService
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -389,5 +390,28 @@ def delete_budget():
 
     result = BudgetService.delete_budget(email=email, category=category)
     return jsonify(result), 200
+
+
+# ------------------------------------------------------------
+# Financial Health Report & PDF Generation Endpoints
+# ------------------------------------------------------------
+
+@profile_bp.route("/report", methods=["GET"])
+def get_financial_report():
+    """GET /user-data/report?email=user@example.com"""
+    email = request.args.get("email", "").strip().lower()
+    report_data = ReportService.generate_report_data(email=email)
+    return jsonify(report_data), 200
+
+
+@profile_bp.route("/report/html", methods=["GET"])
+def get_printable_report_html():
+    """GET /user-data/report/html?email=user@example.com
+    Returns printable HTML string with inline styling for PDF export / browser print.
+    """
+    email = request.args.get("email", "").strip().lower()
+    html_content = ReportService.generate_printable_html(email=email)
+    return Response(html_content, mimetype="text/html")
+
 
 

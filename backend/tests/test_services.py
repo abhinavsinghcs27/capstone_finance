@@ -62,7 +62,24 @@ class TestServices(unittest.TestCase):
         saved = BudgetService.save_budget("demo@financeai.com", "Food", 20000)
         self.assertTrue(saved["success"])
 
+    def test_report_service(self):
+        from services.report_service import ReportService
+        report = ReportService.generate_report_data("demo@financeai.com")
+        self.assertTrue(report["success"])
+        self.assertIn("report_meta", report)
+        self.assertIn("audit_score", report)
+        self.assertIn("cash_flow", report)
+        self.assertIn("balance_sheet", report)
+        self.assertIn("pillars", report["audit_score"])
+        self.assertEqual(len(report["audit_score"]["pillars"]), 4)
+
+        html = ReportService.generate_printable_html("demo@financeai.com")
+        self.assertIn("<!DOCTYPE html>", html)
+        self.assertIn("Financial Health Audit Report", html)
+        self.assertIn("FinanceAI", html)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

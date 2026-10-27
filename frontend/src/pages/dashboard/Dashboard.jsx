@@ -28,8 +28,10 @@ import {
   ChevronRight,
   PiggyBank,
   CheckCheck,
+  FileText,
 } from "lucide-react";
 import AIChatModal from "../../components/common/AIChatModal";
+import FinancialHealthReportModal from "../../components/common/FinancialHealthReportModal";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-IN", {
@@ -64,6 +66,7 @@ function Dashboard() {
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [chatPrompt, setChatPrompt] = useState("");
 
   useEffect(() => {
@@ -250,6 +253,15 @@ function Dashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsReportOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-sm transition hover:bg-emerald-100"
+          >
+            <FileText size={16} className="text-emerald-700" />
+            Financial Report
+          </button>
+
           <button
             type="button"
             onClick={() => navigate("/upload-statement")}
@@ -671,6 +683,11 @@ function Dashboard() {
       </button>
 
       <AIChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} initialPrompt={chatPrompt} />
+      <FinancialHealthReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        userEmail={user?.email}
+      />
     </div>
   );
 }
