@@ -348,6 +348,22 @@ class ReportService:
             border: 1px solid #e2e8f0;
         }}
 
+        @media print {{
+            body {{
+                background: #ffffff !important;
+                padding: 0 !important;
+            }}
+            .container {{
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }}
+            .no-print {{
+                display: none !important;
+            }}
+        }}
+
         .header {{
             display: flex;
             justify-content: space-between;
@@ -741,6 +757,13 @@ class ReportService:
             Generated autonomously by FinanceAI Analytics Engine • All calculations are based on bank statement extractions and profile inputs • Confidential Document
         </div>
     </div>
+    <script>
+        if (new URLSearchParams(window.location.search).get('autoprint') === '1') {{
+            window.addEventListener('load', function() {{
+                setTimeout(function() {{ window.print(); }}, 400);
+            }});
+        }}
+    </script>
 </body>
 </html>
         """

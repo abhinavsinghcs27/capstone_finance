@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  Download,
 } from "lucide-react";
 import api from "../../services/api";
 
@@ -128,6 +129,7 @@ function Transactions() {
 
   // Statement Import Modal states
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isParsing, setIsParsing] = useState(false);
   const [isImportSaving, setIsImportSaving] = useState(false);
@@ -343,6 +345,42 @@ function Transactions() {
   }
 
   // ------------------------------------------------------------
+  // Export CSV Handler
+  // ------------------------------------------------------------
+  function handleExportCSV(onlyFiltered = false) {
+    const listToExport = onlyFiltered ? filteredTransactions : transactions;
+    if (!listToExport || listToExport.length === 0) {
+      alert("No transactions available to export.");
+      return;
+    }
+
+    const headers = ["Date", "Description", "Category", "Type", "Amount (INR)", "Source", "Transaction ID"];
+    const rows = listToExport.map((t) => [
+      `"${String(t.date || "").replace(/"/g, '""')}"`,
+      `"${String(t.description || "").replace(/"/g, '""')}"`,
+      `"${String(t.category || "").replace(/"/g, '""')}"`,
+      `"${String(t.type || "").replace(/"/g, '""')}"`,
+      Number(t.amount || 0).toFixed(2),
+      `"${String(t.source || "").replace(/"/g, '""')}"`,
+      `"${String(t.id || "").replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    link.download = `FinanceAI_Transactions_${onlyFiltered ? "Filtered_" : ""}${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setIsExportMenuOpen(false);
+    showToast(`Exported ${listToExport.length} transactions to CSV`);
+  }
+
+  // ------------------------------------------------------------
   // Import Modal Handlers
   // ------------------------------------------------------------
   function openImportModal() {
@@ -474,7 +512,42 @@ function Transactions() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row relative">
+            {/* Export Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsExportMenuOpen((prev) => !prev)}
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                title="Export transactions as CSV"
+              >
+                <Download size={18} />
+                Export Ledger
+                <ChevronDown size={14} className="text-slate-400" />
+              </button>
+
+              {isExportMenuOpen && (
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl z-30">
+                  <button
+                    type="button"
+                    onClick={() => handleExportCSV(false)}
+                    className="w-full text-left rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition flex items-center justify-between"
+                  >
+                    <span>Export All ({transactions.length})</span>
+                    <span className="text-[10px] text-slate-400 font-mono">CSV</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExportCSV(true)}
+                    className="w-full text-left rounded-xl px-3.5 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 transition flex items-center justify-between"
+                  >
+                    <span>Export Filtered ({filteredTransactions.length})</span>
+                    <span className="text-[10px] text-emerald-600 font-mono">CSV</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={openImportModal}

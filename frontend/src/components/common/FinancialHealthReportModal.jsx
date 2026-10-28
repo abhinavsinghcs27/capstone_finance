@@ -21,6 +21,7 @@ import {
   Award,
 } from "lucide-react";
 import api from "../../services/api";
+import FormattedAIMessage from "./FormattedAIMessage";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-IN", {
@@ -67,7 +68,7 @@ export default function FinancialHealthReportModal({ isOpen, onClose, userEmail 
   const handleOpenPrintView = () => {
     const email = userEmail || JSON.parse(localStorage.getItem("user") || "{}").email || "";
     const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
-    const reportUrl = `${baseUrl}/user-data/report/html?email=${encodeURIComponent(email)}`;
+    const reportUrl = `${baseUrl}/user-data/report/html?email=${encodeURIComponent(email)}&autoprint=1`;
     window.open(reportUrl, "_blank", "noopener,noreferrer");
   };
 
@@ -394,7 +395,9 @@ export default function FinancialHealthReportModal({ isOpen, onClose, userEmail 
                       </span>
                       <div className="flex-1">
                         <strong className="text-slate-800">{item.timeframe} — {item.category}:</strong>{" "}
-                        <span className="text-slate-600">{item.action}</span>
+                        <div className="mt-0.5 text-slate-700">
+                          <FormattedAIMessage content={item.action} />
+                        </div>
                       </div>
                     </div>
                   ))}

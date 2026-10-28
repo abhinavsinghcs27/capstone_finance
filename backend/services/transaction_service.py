@@ -331,3 +331,32 @@ class TransactionService:
                 "success": False,
                 "message": f"Error deleting transaction: {str(e)}"
             }
+
+    @classmethod
+    def export_transactions_csv(cls, email: str, txn_type: str = "all", category: str = "all") -> str:
+        """Exports user transactions to an RFC-4180 standard CSV string with UTF-8 BOM."""
+        import io
+        import csv
+
+        txns = cls.get_transactions(email)
+        if txn_type and txn_type != "all":
+            txns = [t for t in txns if str(t.get("type", "")).lower() == txn_type.lower()]
+        if category and category != "all":
+            txns = [t for t in txns if str(t.get("category", "")).lower() == category.lower()]
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Date", "Description", "Category", "Type", "Amount (INR)", "Source", "Transaction ID"])
+
+        for t in txns:
+            writer.writerow([
+                t.get("date", ""),
+                t.get("description", ""),
+                t.get("category", ""),
+                t.get("type", ""),
+                f"{float(t.get('amount', 0)):.2f}",
+                t.get("source", ""),
+                t.get("id", "")
+            ])
+
+        return "\ufeff" + output.getvalue()

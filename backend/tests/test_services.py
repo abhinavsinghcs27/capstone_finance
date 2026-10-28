@@ -1,4 +1,11 @@
+import os
+import sys
 import unittest
+
+backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 from services.goals_service import GoalsService
 from services.market_data_service import MarketDataService
 from services.ai_advisor_service import AIAdvisorService

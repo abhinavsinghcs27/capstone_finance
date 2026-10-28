@@ -29,9 +29,12 @@ import {
   PiggyBank,
   CheckCheck,
   FileText,
+  Target,
+  Clock,
 } from "lucide-react";
 import AIChatModal from "../../components/common/AIChatModal";
 import FinancialHealthReportModal from "../../components/common/FinancialHealthReportModal";
+import FormattedAIMessage from "../../components/common/FormattedAIMessage";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-IN", {
@@ -67,6 +70,8 @@ function Dashboard() {
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [goals, setGoals] = useState([]);
+  const [subscriptionsData, setSubscriptionsData] = useState(null);
   const [chatPrompt, setChatPrompt] = useState("");
 
   useEffect(() => {
@@ -93,7 +98,27 @@ function Dashboard() {
           setTransactions(txnRes.data.transactions);
         }
 
-        // 3. Fetch AI Insights
+        // 3. Fetch Goals
+        const goalsRes = await api.get("/user-data/goals", {
+          params: email ? { email } : {},
+        });
+        if (goalsRes.data?.success && Array.isArray(goalsRes.data.goals)) {
+          setGoals(goalsRes.data.goals);
+        }
+
+        // 4. Fetch Recurring Subscriptions & Bill Radar
+        try {
+          const subsRes = await api.get("/user-data/subscriptions", {
+            params: email ? { email } : {},
+          });
+          if (subsRes.data?.success) {
+            setSubscriptionsData(subsRes.data);
+          }
+        } catch (e) {
+          console.error("Failed to load subscriptions:", e);
+        }
+
+        // 5. Fetch AI Insights
         if (email || profileRes.data?.user) {
           fetchAiInsights(email);
         }
@@ -389,7 +414,7 @@ function Dashboard() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate("/dashboard/portfolio")}
+              onClick={() => navigate("/portfolio")}
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-xs font-bold text-[#07111f] transition hover:bg-emerald-300"
             >
               <TrendingUp size={15} />
@@ -483,6 +508,76 @@ function Dashboard() {
             </div>
           </div>
 
+          {/* Upcoming Bill Radar (Next 7 Days) */}
+          {subscriptionsData && (
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Recurring Commitments</p>
+                  </div>
+                  <h3 className="text-lg font-bold text-[#07111f] flex items-center gap-2 mt-0.5">
+                    <Clock size={18} className="text-emerald-600" />
+                    Upcoming Bill Radar (Next 7 Days)
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-800">
+                    {formatCurrency(subscriptionsData.total_upcoming_7_days)} due this week
+                  </span>
+                </div>
+              </div>
+
+              {/* Subscriptions Grid / List */}
+              <div className="mt-5 space-y-3">
+                {subscriptionsData.upcoming_7_days?.length > 0 ? (
+                  subscriptionsData.upcoming_7_days.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-xs transition hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100/60 text-emerald-700 font-bold">
+                          {sub.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-[#07111f]">{sub.name}</p>
+                          <p className="text-[11px] text-slate-400">{sub.category} • Auto-renewal</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-extrabold text-[#07111f]">{formatCurrency(sub.amount)}</p>
+                        <span className="inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                          Due in {sub.days_remaining} {sub.days_remaining === 1 ? "day" : "days"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="py-4 text-center text-xs text-slate-400">
+                    No recurring debits due in the next 7 days.
+                  </p>
+                )}
+              </div>
+
+              {/* Footer info */}
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-100 pt-3 text-[11px] text-slate-400 gap-2">
+                <span>
+                  Total Committed Burn: <strong className="text-slate-700">{formatCurrency(subscriptionsData.total_monthly_committed)}/mo</strong> ({subscriptionsData.active_subscriptions_count} active services)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleOpenChatWithPrompt("Review my active recurring subscriptions and suggest ways to reduce my monthly committed burn rate.")}
+                  className="font-bold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1"
+                >
+                  <Bot size={13} />
+                  Optimize subscriptions with AI
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Recent Ledger Transactions */}
           <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -492,7 +587,7 @@ function Dashboard() {
               </div>
               <button
                 type="button"
-                onClick={() => navigate("/dashboard/transactions")}
+                onClick={() => navigate("/transactions")}
                 className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 transition hover:text-emerald-700"
               >
                 View Full Ledger
@@ -574,7 +669,7 @@ function Dashboard() {
                     <Sparkles size={14} className="text-emerald-600" />
                     <span>Executive Summary</span>
                   </div>
-                  <p className="text-slate-700 leading-relaxed">{aiInsights.summary}</p>
+                  <FormattedAIMessage content={aiInsights.summary} />
                 </div>
 
                 <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
@@ -602,7 +697,9 @@ function Dashboard() {
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-slate-500 leading-normal">{item.description}</p>
+                      <div className="mt-1 text-slate-600 leading-normal">
+                        <FormattedAIMessage content={item.description} />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -633,7 +730,7 @@ function Dashboard() {
               </div>
               <button
                 type="button"
-                onClick={() => navigate("/dashboard/portfolio")}
+                onClick={() => navigate("/portfolio")}
                 className="text-xs font-bold text-emerald-600 hover:text-emerald-700"
               >
                 Manage
@@ -645,7 +742,7 @@ function Dashboard() {
                 { name: "Mutual Funds (SIPs)", value: metrics.mutualFunds, color: "bg-indigo-500" },
                 { name: "Indian Equities / Stocks", value: metrics.stocks, color: "bg-emerald-500" },
                 { name: "Fixed Deposits", value: metrics.fixedDeposit, color: "bg-amber-500" },
-                { name: "Gold / SGBs", value: metrics.gold, color: "bg-yellow-500" },
+                { name: "Gold / SGBs", value: metrics.gold, color: "bg-amber-400" },
               ].map((asset, idx) => {
                 const pct = metrics.totalInvestments > 0 ? Math.round((asset.value / metrics.totalInvestments) * 100) : 0;
                 return (
@@ -662,6 +759,65 @@ function Dashboard() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Active Goals & Milestones Snapshot */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Life Milestones</p>
+                <h3 className="text-lg font-bold text-[#07111f] flex items-center gap-2">
+                  <Target size={18} className="text-emerald-600" />
+                  Active Financial Goals
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/goals")}
+                className="text-xs font-bold text-emerald-600 hover:text-emerald-700"
+              >
+                View All
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3.5">
+              {goals.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400">
+                  <p>No goals defined yet.</p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/goals")}
+                    className="mt-2 text-xs font-bold text-emerald-600 underline"
+                  >
+                    Create your first milestone
+                  </button>
+                </div>
+              ) : (
+                goals.slice(0, 3).map((g) => {
+                  const targetAmt = parseFloat(g.target_amount) || 0;
+                  const currentAmt = parseFloat(g.current_amount) || 0;
+                  const pct = targetAmt > 0 ? Math.min(100, Math.round((currentAmt / targetAmt) * 100)) : 0;
+                  return (
+                    <div key={g.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 text-xs">
+                      <div className="flex items-center justify-between font-bold text-[#07111f]">
+                        <span className="truncate max-w-[180px]">{g.title}</span>
+                        <span className="text-[11px] text-emerald-700 font-extrabold">{pct}%</span>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="mt-1.5 flex justify-between text-[10px] text-slate-400">
+                        <span>{formatCurrency(currentAmt)}</span>
+                        <span>Target: {formatCurrency(targetAmt)}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

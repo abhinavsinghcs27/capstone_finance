@@ -9,10 +9,12 @@ import {
   ArrowLeftRight,
   WalletCards,
   BriefcaseBusiness,
+  Target,
   ShieldCheck,
   FileBarChart,
   Sparkles,
   BrainCircuit,
+  Calculator,
   Menu,
   ChevronLeft,
 } from "lucide-react";
@@ -34,6 +36,11 @@ const navigation = [
     path: "/budget",
   },
   {
+    label: "Goals",
+    icon: Target,
+    path: "/goals",
+  },
+  {
     label: "Portfolio",
     icon: BriefcaseBusiness,
     path: "/portfolio",
@@ -47,6 +54,11 @@ const navigation = [
     label: "Reports",
     icon: FileBarChart,
     path: "/reports",
+  },
+  {
+    label: "Tax Optimizer",
+    icon: Calculator,
+    path: "/tax-simulator",
   },
   {
     label: "AI Copilot",

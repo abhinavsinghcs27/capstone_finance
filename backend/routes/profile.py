@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Blueprint, jsonify, request, Response
 from werkzeug.utils import secure_filename
 from services.ai_advisor_service import AIAdvisorService
@@ -10,6 +11,10 @@ from services.transaction_service import TransactionService
 from services.goals_service import GoalsService
 from services.budget_service import BudgetService
 from services.report_service import ReportService
+from services.risk_service import RiskIntelligenceService
+from services.tax_service import TaxService
+from services.subscription_service import SubscriptionService
+from services.db_migration_service import DBMigrationService
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -142,6 +147,27 @@ def delete_transaction(txn_id):
     result = TransactionService.delete_transaction(email, txn_id)
     status_code = 200 if result.get("success") else 404
     return jsonify(result), status_code
+
+
+@profile_bp.route("/transactions/export", methods=["GET"])
+def export_transactions():
+    """GET /user-data/transactions/export?email=user@example.com&type=all&category=all"""
+    email = request.args.get("email", "").strip().lower()
+    txn_type = request.args.get("type", "all").strip().lower()
+    category = request.args.get("category", "all").strip()
+
+    csv_data = TransactionService.export_transactions_csv(email=email, txn_type=txn_type, category=category)
+    today_str = datetime.now().strftime("%Y%m%d")
+    filename = f"FinanceAI_Transactions_{today_str}.csv"
+
+    return Response(
+        csv_data,
+        mimetype="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": "text/csv; charset=utf-8"
+        }
+    )
 
 
 # ------------------------------------------------------------
@@ -412,6 +438,129 @@ def get_printable_report_html():
     email = request.args.get("email", "").strip().lower()
     html_content = ReportService.generate_printable_html(email=email)
     return Response(html_content, mimetype="text/html")
+
+
+# ------------------------------------------------------------
+# Risk Intelligence & AML Compliance Endpoints
+# ------------------------------------------------------------
+
+@profile_bp.route("/risk-intelligence", methods=["GET"])
+def get_risk_intelligence():
+    """GET /user-data/risk-intelligence?email=user@example.com"""
+    email = request.args.get("email", "").strip().lower()
+    risk_data = RiskIntelligenceService.analyze_account_risk(email=email)
+    return jsonify(risk_data), 200
+
+
+@profile_bp.route("/risk-intelligence/resolve", methods=["POST"])
+def resolve_risk_flag():
+    """POST /user-data/risk-intelligence/resolve
+    Body: {"flag_id": "...", "resolution": "verified" | "disputed" | "dismissed"}
+    """
+    data = request.get_json() or {}
+    flag_id = data.get("flag_id", "")
+    resolution = data.get("resolution", "verified")
+    res = RiskIntelligenceService.resolve_flag(flag_id=flag_id, resolution=resolution)
+    return jsonify(res), 200
+
+
+# ------------------------------------------------------------
+# Tax Optimization & Simulation Endpoints
+# ------------------------------------------------------------
+
+@profile_bp.route("/tax-calculator", methods=["GET"])
+def get_tax_profile():
+    """GET /user-data/tax-calculator?email=user@example.com
+    Auto-populates from user monthly income and calculates baseline comparison.
+    """
+    email = request.args.get("email", "").strip().lower()
+    user_data = ProfileService.get_profile(email=email if email else None)
+    user = user_data.get("user") or {}
+
+    monthly_income = float(user.get("monthly_income") or 0.0)
+    annual_gross = monthly_income * 12 if monthly_income > 0 else 1200000.0
+
+    # Auto-detect any known 80C candidates (e.g. mutual funds / ELSS, PF)
+    mf = float(user.get("mutual_funds") or 0.0)
+    est_80c = min(mf, 150000.0) if mf > 0 else 50000.0
+
+    comparison = TaxService.compare_regimes(
+        gross_income=annual_gross,
+        sec_80c=est_80c,
+        sec_80d=25000.0,
+        hra=0.0,
+        home_loan_interest_24b=0.0,
+        nps_80ccd_1b=0.0,
+        is_salaried=True
+    )
+    comparison["user_profile"] = {
+        "monthly_income": monthly_income,
+        "estimated_annual_income": annual_gross,
+        "auto_detected_80c": est_80c
+    }
+    return jsonify(comparison), 200
+
+
+@profile_bp.route("/tax-calculator/simulate", methods=["POST"])
+def simulate_tax():
+    """POST /user-data/tax-calculator/simulate
+    Body: {
+      gross_income, sec_80c, sec_80d, hra, home_loan_interest_24b,
+      nps_80ccd_1b, other_exemptions, is_salaried
+    }
+    """
+    data = request.get_json() or {}
+    comparison = TaxService.compare_regimes(
+        gross_income=float(data.get("gross_income", 0.0)),
+        sec_80c=float(data.get("sec_80c", 0.0)),
+        sec_80d=float(data.get("sec_80d", 0.0)),
+        hra=float(data.get("hra", 0.0)),
+        home_loan_interest_24b=float(data.get("home_loan_interest_24b", 0.0)),
+        nps_80ccd_1b=float(data.get("nps_80ccd_1b", 0.0)),
+        other_exemptions=float(data.get("other_exemptions", 0.0)),
+        is_salaried=bool(data.get("is_salaried", True))
+    )
+    return jsonify(comparison), 200
+
+
+# ------------------------------------------------------------
+# Recurring Subscriptions & Upcoming Bill Radar Endpoints
+# ------------------------------------------------------------
+
+@profile_bp.route("/subscriptions", methods=["GET"])
+def get_subscriptions():
+    """GET /user-data/subscriptions?email=user@example.com
+    Detects recurring bills and upcoming debits in next 7 days.
+    """
+    email = request.args.get("email", "").strip().lower()
+    subs = SubscriptionService.get_subscriptions(email=email)
+    return jsonify(subs), 200
+
+
+# ------------------------------------------------------------
+# Database Management & Migration Endpoints
+# ------------------------------------------------------------
+
+@profile_bp.route("/db/status", methods=["GET"])
+def get_db_status():
+    """GET /user-data/db/status"""
+    status = DBMigrationService.get_database_status()
+    return jsonify({"success": True, "database": status}), 200
+
+
+@profile_bp.route("/db/migrate", methods=["POST"])
+def trigger_db_migration():
+    """POST /user-data/db/migrate
+    Syncs/migrates CSV datasets into SQLite relational database.
+    """
+    result = DBMigrationService.migrate_from_csvs()
+    db_status = DBMigrationService.get_database_status()
+    return jsonify({
+        "success": True,
+        "migration_stats": result,
+        "database": db_status
+    }), 200
+
 
 
 

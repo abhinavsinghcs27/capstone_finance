@@ -16,6 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import api from "../../services/api";
+import FormattedAIMessage from "./FormattedAIMessage";
 
 const QUICK_PROMPTS = [
   { text: "How is my overall financial health?", icon: TrendingUp },
@@ -186,13 +187,14 @@ export default function AIChatModal({ isOpen, onClose, initialPrompt = "" }) {
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed sm:text-sm ${
                       msg.role === "user"
-                        ? "bg-[#07111f] text-white rounded-br-none"
-                        : "border border-slate-200 bg-white text-slate-800 shadow-sm rounded-bl-none prose prose-sm prose-slate"
+                        ? "bg-[#00353f] text-white rounded-br-none shadow-md shadow-[#00353f]/10"
+                        : "border border-slate-200/80 bg-white text-slate-800 shadow-sm rounded-bl-none"
                     }`}
                   >
-                    <div className="whitespace-pre-wrap font-sans">
-                      {msg.content}
-                    </div>
+                    <FormattedAIMessage
+                      content={msg.content}
+                      isUser={msg.role === "user"}
+                    />
                   </div>
 
                   {msg.role === "user" && (
