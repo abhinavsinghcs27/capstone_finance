@@ -8,7 +8,12 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # Initialize Extensions
-    cors.init_app(app)
+    cors.init_app(
+        app,
+        resources={r"/*": {"origins": "*"}},
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    )
     db.init_app(app)
 
     # Register Blueprints
@@ -23,6 +28,15 @@ def create_app(config_class=Config):
         import models  # Ensure all models are registered
         from services.db_migration_service import DBMigrationService
         DBMigrationService.init_database(app)
+
+    @app.route("/", methods=["GET"])
+    def index():
+        return {
+            "status": "online",
+            "service": "FinanceAI Backend API",
+            "version": "1.0.0",
+            "health": "/health"
+        }, 200
 
     @app.route("/health", methods=["GET"])
     def health_check():
