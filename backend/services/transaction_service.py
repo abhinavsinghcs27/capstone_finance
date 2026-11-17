@@ -43,16 +43,27 @@ class TransactionService:
     @classmethod
     def get_transactions(cls, email: str) -> list[dict]:
         """Fetches all transactions for a specific user, sorted by date (newest first)."""
-        cls._ensure_data_store()
         if not email:
             return []
 
+        cleaned_email = str(email).strip().lower()
+
+        # 1. First look in Relational Database (SQLAlchemy / PostgreSQL)
+        try:
+            from models.transaction import Transaction
+            db_txns = Transaction.query.filter_by(user_email=cleaned_email).order_by(Transaction.date.desc(), Transaction.created_at.desc()).all()
+            if db_txns:
+                return [t.to_dict() for t in db_txns]
+        except Exception:
+            pass
+
+        # 2. Fallback to CSV
+        cls._ensure_data_store()
         try:
             df = pd.read_csv(TRANSACTION_CSV)
             if df.empty:
                 return []
 
-            cleaned_email = str(email).strip().lower()
             user_txns = df[df["user_email"].astype(str).str.strip().str.lower() == cleaned_email].copy()
 
             if user_txns.empty:
@@ -181,6 +192,34 @@ class TransactionService:
             })
 
         if new_rows:
+            # 1. Persist to Relational Database (SQLAlchemy / PostgreSQL)
+            try:
+                from extensions import db
+                from models.transaction import Transaction
+                for r in new_rows:
+                    existing_t = Transaction.query.filter_by(id=r["id"]).first()
+                    if not existing_t:
+                        db_t = Transaction(
+                            id=r["id"],
+                            user_email=r["user_email"],
+                            date=r["date"],
+                            description=r["description"],
+                            amount=float(r["amount"]),
+                            type=r["type"],
+                            category=r["category"],
+                            source=r["source"],
+                            created_at=r["created_at"]
+                        )
+                        db.session.add(db_t)
+                db.session.commit()
+            except Exception:
+                try:
+                    from extensions import db
+                    db.session.rollback()
+                except Exception:
+                    pass
+
+            # 2. Persist to CSV fallback
             new_df = pd.DataFrame(new_rows, columns=COLUMNS)
             if existing_df.empty:
                 combined_df = new_df
@@ -266,6 +305,31 @@ class TransactionService:
             "created_at": created_at
         }
 
+        # 1. Persist to Relational Database (SQLAlchemy / PostgreSQL)
+        try:
+            from extensions import db
+            from models.transaction import Transaction
+            db_t = Transaction(
+                id=txn_id,
+                user_email=cleaned_email,
+                date=txn_date,
+                description=description,
+                amount=float(amount),
+                type=normalized_type,
+                category=category,
+                source=source,
+                created_at=created_at
+            )
+            db.session.add(db_t)
+            db.session.commit()
+        except Exception:
+            try:
+                from extensions import db
+                db.session.rollback()
+            except Exception:
+                pass
+
+        # 2. Persist to CSV fallback
         try:
             existing_df = pd.read_csv(TRANSACTION_CSV)
         except Exception:
@@ -294,16 +358,32 @@ class TransactionService:
                 "message": "Transaction ID is required"
             }
 
+        str_txn_id = str(txn_id).strip()
+
+        # 1. Delete from Relational Database (SQLAlchemy / PostgreSQL)
+        try:
+            from extensions import db
+            from models.transaction import Transaction
+            db_txn = Transaction.query.filter_by(id=str_txn_id).first()
+            if db_txn:
+                db.session.delete(db_txn)
+                db.session.commit()
+        except Exception:
+            try:
+                from extensions import db
+                db.session.rollback()
+            except Exception:
+                pass
+
         try:
             df = pd.read_csv(TRANSACTION_CSV)
             if df.empty:
                 return {
-                    "success": False,
-                    "message": "No transactions found"
+                    "success": True,
+                    "message": "Transaction deleted successfully"
                 }
 
             initial_len = len(df)
-            str_txn_id = str(txn_id).strip()
 
             if email:
                 cleaned_email = str(email).strip().lower()

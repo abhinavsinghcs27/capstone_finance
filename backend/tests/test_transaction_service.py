@@ -23,6 +23,11 @@ class TestTransactionService(unittest.TestCase):
         TransactionService._ensure_data_store()
         df = pd.DataFrame(columns=COLUMNS)
         df.to_csv(TRANSACTION_CSV, index=False)
+        with self.app.app_context():
+            from extensions import db
+            from models.transaction import Transaction
+            Transaction.query.delete()
+            db.session.commit()
 
     def test_save_bulk_and_get_transactions(self):
         email = "testuser@example.com"

@@ -195,14 +195,21 @@ class DBMigrationService:
 
     @classmethod
     def get_database_status(cls) -> dict:
-        """Returns live statistics of the SQLite database tables and storage."""
+        """Returns live statistics of the database tables and storage."""
+        try:
+            from extensions import db
+            engine_name = str(db.engine.name).lower()
+        except Exception:
+            engine_name = "unknown"
+
         db_file = os.path.join(DATA_DIR, "financeai.db")
         db_size_kb = round(os.path.getsize(db_file) / 1024, 2) if os.path.exists(db_file) else 0.0
 
         return {
-            "database_type": "SQLite / SQLAlchemy Relational ORM",
-            "database_file": db_file,
-            "database_size_kb": db_size_kb,
+            "database_engine": engine_name,
+            "database_type": "PostgreSQL (Cloud Supabase)" if engine_name == "postgresql" else "SQLite (Local File)",
+            "database_file": db_file if engine_name == "sqlite" else None,
+            "database_size_kb": db_size_kb if engine_name == "sqlite" else None,
             "counts": {
                 "users": User.query.count(),
                 "financial_profiles": FinancialProfile.query.count(),

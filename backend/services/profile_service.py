@@ -79,6 +79,24 @@ def init_profile_csv():
 class ProfileService:
     @staticmethod
     def get_profile(email=None):
+        # 1. First look in Relational Database (SQLAlchemy / PostgreSQL)
+        if email:
+            email_clean = email.strip().lower()
+            try:
+                from models.financial_profile import FinancialProfile
+                db_prof = FinancialProfile.query.filter_by(email=email_clean).first()
+                if db_prof:
+                    prof_dict = db_prof.to_dict()
+                    evaluation = FinancialEngine(prof_dict).run_full_evaluation()
+                    return {
+                        "success": True,
+                        "user": prof_dict,
+                        "evaluation": evaluation
+                    }
+            except Exception:
+                pass
+
+        # 2. Fallback to CSV
         init_profile_csv()
         if not os.path.exists(CSV_FILE):
             return {"success": True, "user": None, "evaluation": None}
@@ -149,15 +167,59 @@ class ProfileService:
             }
 
         user_dict = asdict(user)
+        user_email = str(user_dict.get("email", "")).strip().lower()
+        user_name = str(user_dict.get("name", "")).strip().lower()
 
-        # Read existing rows
+        # 1. Persist to Relational Database (SQLAlchemy / PostgreSQL)
+        if user_email:
+            try:
+                from extensions import db
+                from models.user import User
+                from models.financial_profile import FinancialProfile
+
+                user_obj = User.query.filter_by(email=user_email).first()
+                existing_prof = FinancialProfile.query.filter_by(email=user_email).first()
+                if not existing_prof:
+                    existing_prof = FinancialProfile(
+                        user_id=user_obj.id if user_obj else None,
+                        email=user_email
+                    )
+                    db.session.add(existing_prof)
+
+                existing_prof.name = user_dict.get("name", "")
+                existing_prof.age = int(user_dict.get("age", 0) or 0)
+                existing_prof.employment_type = user_dict.get("employment_type", "")
+                existing_prof.financial_goals = user_dict.get("financial_goals", "")
+                existing_prof.marital_status = user_dict.get("marital_status", "")
+                existing_prof.dependents = int(user_dict.get("dependents", 0) or 0)
+                existing_prof.monthly_income = int(user_dict.get("monthly_income", 0) or 0)
+                existing_prof.other_income = int(user_dict.get("other_income", 0) or 0)
+                existing_prof.fixed_expenses = int(user_dict.get("fixed_expenses", 0) or 0)
+                existing_prof.variable_expenses = int(user_dict.get("variable_expenses", 0) or 0)
+                existing_prof.existing_debt = int(user_dict.get("existing_debt", 0) or 0)
+                existing_prof.current_savings = int(user_dict.get("current_savings", 0) or 0)
+                existing_prof.emergency_fund = int(user_dict.get("emergency_fund", 0) or 0)
+                existing_prof.stocks = int(user_dict.get("stocks", 0) or 0)
+                existing_prof.mutual_funds = int(user_dict.get("mutual_funds", 0) or 0)
+                existing_prof.fixed_deposit = int(user_dict.get("fixed_deposit", 0) or 0)
+                existing_prof.gold = int(user_dict.get("gold", 0) or 0)
+                existing_prof.insurance = user_dict.get("insurance", "")
+                existing_prof.other_investments = int(user_dict.get("other_investments", 0) or 0)
+                existing_prof.risk_tolerance = user_dict.get("risk_tolerance", "Moderate")
+
+                db.session.commit()
+            except Exception as e:
+                try:
+                    from extensions import db
+                    db.session.rollback()
+                except Exception:
+                    pass
+
+        # 2. Persist to CSV fallback
         existing_rows = []
         if os.path.exists(CSV_FILE):
             with open(CSV_FILE, "r", encoding="utf-8") as file:
                 existing_rows = list(csv.DictReader(file))
-
-        user_email = str(user_dict.get("email", "")).strip().lower()
-        user_name = str(user_dict.get("name", "")).strip().lower()
 
         updated = False
         new_rows = []

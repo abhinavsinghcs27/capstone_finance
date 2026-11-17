@@ -93,8 +93,18 @@ class GoalsService:
 
     @classmethod
     def get_goals(cls, email: str) -> List[Dict[str, Any]]:
-        data = cls._read_data()
         clean_email = (email or "demo@financeai.com").strip().lower()
+
+        # 1. First look in Relational Database (SQLAlchemy / PostgreSQL)
+        try:
+            from models.goal import Goal
+            db_goals = Goal.query.filter_by(user_email=clean_email).all()
+            if db_goals:
+                return [g.to_dict() for g in db_goals]
+        except Exception:
+            pass
+
+        data = cls._read_data()
         if clean_email in data:
             return data[clean_email]
         # Return demo goals if new user has no custom goals yet
@@ -123,11 +133,67 @@ class GoalsService:
 
         data[clean_email] = user_goals
         cls._write_data(data)
+
+        # Persist to Relational Database (SQLAlchemy / PostgreSQL)
+        try:
+            from extensions import db
+            from models.goal import Goal
+            existing = Goal.query.filter_by(id=goal_id).first()
+            if existing:
+                existing.title = str(goal.get("title", existing.title))
+                existing.category = str(goal.get("category", existing.category))
+                existing.target_amount = float(goal.get("target_amount") or existing.target_amount or 0.0)
+                existing.current_amount = float(goal.get("current_amount") or existing.current_amount or 0.0)
+                existing.target_date = f"{goal.get('target_month', '')} {goal.get('target_year', '')}".strip()
+            else:
+                db_g = Goal(
+                    id=goal_id,
+                    user_email=clean_email,
+                    title=str(goal.get("title", "")),
+                    category=str(goal.get("category", "General")),
+                    target_amount=float(goal.get("target_amount") or 0.0),
+                    current_amount=float(goal.get("current_amount") or 0.0),
+                    target_date=f"{goal.get('target_month', '')} {goal.get('target_year', '')}".strip(),
+                    created_at=str(goal.get("created_at") or datetime.now().isoformat())
+                )
+                db.session.add(db_g)
+            db.session.commit()
+        except Exception:
+            try:
+                from extensions import db
+                db.session.rollback()
+            except Exception:
+                pass
+
         return goal
 
     @classmethod
     def delete_goal(cls, email: str, goal_id: str) -> bool:
+        # Delete from Relational Database (SQLAlchemy / PostgreSQL)
+        try:
+            from extensions import db
+            from models.goal import Goal
+            existing = Goal.query.filter_by(id=goal_id).first()
+            if existing:
+                db.session.delete(existing)
+                db.session.commit()
+        except Exception:
+            try:
+                from extensions import db
+                db.session.rollback()
+            except Exception:
+                pass
+
         data = cls._read_data()
+        clean_email = (email or "demo@financeai.com").strip().lower()
+        user_goals = data.get(clean_email, [])
+        initial_len = len(user_goals)
+        user_goals = [g for g in user_goals if g.get("id") != goal_id]
+        if len(user_goals) < initial_len:
+            data[clean_email] = user_goals
+            cls._write_data(data)
+            return True
+        return False
         clean_email = (email or "demo@financeai.com").strip().lower()
         if clean_email not in data:
             return False

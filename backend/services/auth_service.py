@@ -15,6 +15,25 @@ def init_users_csv():
 class AuthService:
     @staticmethod
     def get_all_users():
+        # First query from Relational Database (SQLAlchemy)
+        try:
+            from models.user import User
+            db_users = User.query.all()
+            if db_users:
+                return [
+                    {
+                        "id": u.id,
+                        "name": u.name,
+                        "email": u.email,
+                        "password_hash": u.password_hash,
+                        "auth_type": u.auth_type
+                    }
+                    for u in db_users
+                ]
+        except Exception:
+            pass
+
+        # Fallback to CSV
         init_users_csv()
         if not os.path.exists(USERS_CSV):
             return []
@@ -26,22 +45,91 @@ class AuthService:
         if not email:
             return None
         email = email.strip().lower()
-        for user in AuthService.get_all_users():
-            if user.get("email", "").lower() == email:
-                return user
+
+        # 1. First look in Relational Database (SQLAlchemy / PostgreSQL)
+        try:
+            from models.user import User
+            db_user = User.query.filter_by(email=email).first()
+            if db_user:
+                return {
+                    "id": db_user.id,
+                    "name": db_user.name,
+                    "email": db_user.email,
+                    "password_hash": db_user.password_hash,
+                    "auth_type": db_user.auth_type
+                }
+        except Exception:
+            pass
+
+        # 2. Fallback to CSV
+        init_users_csv()
+        if os.path.exists(USERS_CSV):
+            with open(USERS_CSV, "r", encoding="utf-8") as file:
+                for user in csv.DictReader(file):
+                    if user.get("email", "").strip().lower() == email:
+                        return user
         return None
 
     @staticmethod
     def save_user(name, email, password_hash="", auth_type="local"):
+        clean_email = email.strip().lower()
+        clean_name = name.strip()
+
+        # 1. Persist to Relational Database (SQLAlchemy / PostgreSQL)
+        try:
+            from extensions import db
+            from models.user import User
+            existing = User.query.filter_by(email=clean_email).first()
+            if existing:
+                existing.name = clean_name
+                if password_hash:
+                    existing.password_hash = password_hash
+                existing.auth_type = auth_type
+            else:
+                db_user = User(
+                    name=clean_name,
+                    email=clean_email,
+                    password_hash=password_hash,
+                    auth_type=auth_type
+                )
+                db.session.add(db_user)
+            db.session.commit()
+        except Exception as e:
+            try:
+                from extensions import db
+                db.session.rollback()
+            except Exception:
+                pass
+
+        # 2. Persist to CSV fallback
         init_users_csv()
-        with open(USERS_CSV, "a", newline="", encoding="utf-8") as file:
-            writer = csv.DictWriter(file, fieldnames=USER_FIELDS)
-            writer.writerow({
-                "name": name.strip(),
-                "email": email.strip().lower(),
+        existing_csv_users = []
+        if os.path.exists(USERS_CSV):
+            with open(USERS_CSV, "r", encoding="utf-8") as file:
+                existing_csv_users = list(csv.DictReader(file))
+
+        updated = False
+        for row in existing_csv_users:
+            if row.get("email", "").strip().lower() == clean_email:
+                row["name"] = clean_name
+                if password_hash:
+                    row["password_hash"] = password_hash
+                row["auth_type"] = auth_type
+                updated = True
+                break
+
+        if not updated:
+            existing_csv_users.append({
+                "name": clean_name,
+                "email": clean_email,
                 "password_hash": password_hash,
                 "auth_type": auth_type
             })
+
+        with open(USERS_CSV, "w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=USER_FIELDS)
+            writer.writeheader()
+            writer.writerows(existing_csv_users)
 
     @staticmethod
     def register_user(name, email, password):
