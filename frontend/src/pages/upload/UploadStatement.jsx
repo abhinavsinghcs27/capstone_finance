@@ -202,7 +202,7 @@ const UploadStatement = () => {
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
-              Upload your bank statement (PDF, Excel, or CSV) and FinanceAI
+              Upload your bank statement (PDF, Excel, or CSV) and FinArtha
               will securely extract and organize your financial information.
             </p>
           </div>
@@ -282,7 +282,7 @@ const UploadStatement = () => {
 
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-500">
             Your confirmed financial information has been saved and will now be
-            used to personalize your FinanceAI dashboard and insights.
+            used to personalize your FinArtha dashboard and insights.
           </p>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">

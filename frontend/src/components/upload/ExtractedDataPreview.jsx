@@ -215,7 +215,7 @@ const ExtractedDataPreview = ({
             <p className="text-xs text-slate-500 sm:text-sm">
               {isEditing
                 ? "Modify any detected parameter below if needed."
-                : "Parsed parameters to sync to your FinanceAI profile."}
+                : "Parsed parameters to sync to your FinArtha profile."}
             </p>
           </div>
 

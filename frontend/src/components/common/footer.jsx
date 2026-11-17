@@ -39,13 +39,13 @@ function Footer() {
         </div>
 
         <p className="mx-auto mt-7 max-w-3xl text-xs leading-5 text-slate-400">
-          FinanceAI provides algorithmic insights for educational purposes and
+          FinArtha provides algorithmic insights for educational purposes and
           is not a SEBI registered investment advisor.
         </p>
 
         <div className="mt-7 border-t border-slate-100 pt-5">
           <p className="text-xs text-slate-400">
-            © 2026 FinanceAI · All rights reserved.
+            © 2026 FinArtha · All rights reserved.
           </p>
         </div>
       </div>

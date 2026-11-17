@@ -33,7 +33,7 @@ def create_app(config_class=Config):
     def index():
         return {
             "status": "online",
-            "service": "FinanceAI Backend API",
+            "service": "FinArtha Backend API",
             "version": "1.0.0",
             "health": "/health"
         }, 200
@@ -44,7 +44,7 @@ def create_app(config_class=Config):
         db_status = DBMigrationService.get_database_status()
         return {
             "status": "ok",
-            "message": "FinanceAI Backend API is running",
+            "message": "FinArtha Backend API is running",
             "database": db_status
         }, 200
 

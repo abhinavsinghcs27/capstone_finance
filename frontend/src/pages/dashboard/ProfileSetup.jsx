@@ -439,7 +439,7 @@ function ProfileSetup() {
         </h1>
 
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-          Tell FinanceAI about your income, expenses, savings, investments and
+          Tell FinArtha about your income, expenses, savings, investments and
           financial goals to build your personalized financial profile.
         </p>
       </div>

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import BrandLogo from "../components/common/BrandLogo";
 import {
   BrainCircuit,
   ShieldCheck,
@@ -20,20 +21,8 @@ function AuthLayout({ children }) {
         <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-16">
 
           {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400 text-[#07111f]">
-              <BrainCircuit size={22} />
-            </div>
-
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">
-                Finance<span className="text-emerald-400">AI</span>
-              </h1>
-
-              <p className="text-xs text-slate-400">
-                Intelligent Financial Platform
-              </p>
-            </div>
+          <div className="flex items-center">
+            <BrandLogo size={44} showText={true} textClassName="text-2xl" light={true} />
           </div>
 
           {/* Hero */}

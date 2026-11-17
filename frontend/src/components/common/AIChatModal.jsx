@@ -30,7 +30,7 @@ export default function AIChatModal({ isOpen, onClose, initialPrompt = "" }) {
     {
       role: "assistant",
       content:
-        "Hello! I am your **FinanceAI Advisor**, powered by Groq. I have real-time access to your profile and transaction ledger. How can I help optimize your finances today?",
+        "Hello! I am your **FinArtha Advisor**, powered by Groq. I have real-time access to your profile and transaction ledger. How can I help optimize your finances today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -130,7 +130,7 @@ export default function AIChatModal({ isOpen, onClose, initialPrompt = "" }) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold">FinanceAI Advisor</h3>
+                <h3 className="text-sm font-semibold">FinArtha Copilot</h3>
                 <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
                   GPT-OSS-20B
                 </span>

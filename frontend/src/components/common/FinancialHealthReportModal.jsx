@@ -412,7 +412,7 @@ export default function FinancialHealthReportModal({ isOpen, onClose, userEmail 
         {/* ============================================================ */}
         <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-3.5 rounded-b-3xl">
           <p className="text-xs text-slate-400">
-            Powered by FinanceAI Autonomous Financial Intelligence Engine
+            Powered by FinArtha Autonomous Financial Intelligence Engine
           </p>
           <button
             type="button"

@@ -371,7 +371,7 @@ function Transactions() {
     const link = document.createElement("a");
     link.href = url;
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    link.download = `FinanceAI_Transactions_${onlyFiltered ? "Filtered_" : ""}${dateStr}.csv`;
+    link.download = `FinArtha_Transactions_${onlyFiltered ? "Filtered_" : ""}${dateStr}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

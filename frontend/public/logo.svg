@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="finarthaGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="50%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1728" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base -->
+  <rect x="4" y="4" width="92" height="92" rx="26" fill="url(#bgGrad)" stroke="#1e293b" stroke-width="2" />
+  
+  <!-- Subtle Internal Highlight Ring -->
+  <rect x="5" y="5" width="90" height="90" rx="25" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+
+  <!-- FinArtha Emblem: Stylized Dynamic 'A' + Ascending Wealth Peak -->
+  <!-- Upper Peak & Chevron -->
+  <path d="M 50 20 L 78 72 L 64 72 L 50 45 L 36 72 L 22 72 Z" fill="url(#finarthaGrad)" filter="url(#glow)" />
+  
+  <!-- Horizontal Horizon Crossbar (Rupee / Prosperity motif) -->
+  <rect x="29" y="52" width="42" height="7" rx="3.5" fill="#ffffff" opacity="0.95" />
+  <rect x="34" y="41" width="32" height="5.5" rx="2.75" fill="url(#finarthaGrad)" opacity="0.85" />
+  
+  <!-- Glowing Center Diamond Core -->
+  <circle cx="50" cy="35" r="3.5" fill="#a7f3d0" />
+</svg>

@@ -80,7 +80,7 @@ function Signup() {
             Get started
           </p>
           <h1 className="text-3xl font-semibold text-[#07111f]">
-            Create your FinanceAI account
+            Create your FinArtha account
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             Start understanding your finances with intelligent insights.

@@ -78,48 +78,54 @@ function Dashboard() {
     const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
     const email = savedUser.email || "";
 
-    const loadDashboardData = async () => {
-      setIsLoadingDashboard(true);
+    // 1. Instant hydration from local cache to prevent blank layout flash
+    const cachedProfile = localStorage.getItem(`finartha_cache_profile_${email}`);
+    if (cachedProfile) {
       try {
-        // 1. Fetch Profile & Evaluation
-        const profileRes = await api.get("/user-data", {
-          params: email ? { email } : {},
-        });
-        if (profileRes.data?.user) {
-          setUser(profileRes.data.user);
-          setEvaluation(profileRes.data.evaluation);
+        const parsed = JSON.parse(cachedProfile);
+        if (parsed?.user) {
+          setUser(parsed.user);
+          setEvaluation(parsed.evaluation);
+          setIsLoadingDashboard(false);
+        }
+      } catch (e) {}
+    }
+
+    const loadDashboardData = async () => {
+      try {
+        // Parallel non-blocking execution across all resources
+        const [profileRes, txnRes, goalsRes, subsRes] = await Promise.allSettled([
+          api.get("/user-data", { params: email ? { email } : {} }),
+          api.get("/user-data/transactions", { params: email ? { email } : {} }),
+          api.get("/user-data/goals", { params: email ? { email } : {} }),
+          api.get("/user-data/subscriptions", { params: email ? { email } : {} }),
+        ]);
+
+        if (profileRes.status === "fulfilled" && profileRes.value.data?.user) {
+          setUser(profileRes.value.data.user);
+          setEvaluation(profileRes.value.data.evaluation);
+          try {
+            localStorage.setItem(
+              `finartha_cache_profile_${email}`,
+              JSON.stringify(profileRes.value.data)
+            );
+          } catch (e) {}
         }
 
-        // 2. Fetch Transactions Ledger
-        const txnRes = await api.get("/user-data/transactions", {
-          params: email ? { email } : {},
-        });
-        if (txnRes.data?.success && Array.isArray(txnRes.data.transactions)) {
-          setTransactions(txnRes.data.transactions);
+        if (txnRes.status === "fulfilled" && txnRes.value.data?.success && Array.isArray(txnRes.value.data.transactions)) {
+          setTransactions(txnRes.value.data.transactions);
         }
 
-        // 3. Fetch Goals
-        const goalsRes = await api.get("/user-data/goals", {
-          params: email ? { email } : {},
-        });
-        if (goalsRes.data?.success && Array.isArray(goalsRes.data.goals)) {
-          setGoals(goalsRes.data.goals);
+        if (goalsRes.status === "fulfilled" && goalsRes.value.data?.success && Array.isArray(goalsRes.value.data.goals)) {
+          setGoals(goalsRes.value.data.goals);
         }
 
-        // 4. Fetch Recurring Subscriptions & Bill Radar
-        try {
-          const subsRes = await api.get("/user-data/subscriptions", {
-            params: email ? { email } : {},
-          });
-          if (subsRes.data?.success) {
-            setSubscriptionsData(subsRes.data);
-          }
-        } catch (e) {
-          console.error("Failed to load subscriptions:", e);
+        if (subsRes.status === "fulfilled" && subsRes.value.data?.success) {
+          setSubscriptionsData(subsRes.value.data);
         }
 
-        // 5. Fetch AI Insights
-        if (email || profileRes.data?.user) {
+        // Fetch AI Insights in background non-blocking
+        if (email) {
           fetchAiInsights(email);
         }
       } catch (err) {
@@ -835,7 +841,7 @@ function Dashboard() {
           <BrainCircuit size={13} />
           <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-300 animate-ping" />
         </div>
-        <span>FinanceAI Copilot</span>
+        <span>FinArtha Copilot</span>
       </button>
 
       <AIChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} initialPrompt={chatPrompt} />

@@ -3,6 +3,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import BrandLogo from "./BrandLogo";
 
 import {
   LayoutDashboard,
@@ -75,7 +76,7 @@ function Sidebar() {
 
   return (
     <aside
-      className={`hidden h-screen shrink-0 border-r border-slate-200 bg-white transition-all duration-200 lg:flex ${
+      className={`hidden h-screen shrink-0 border-r border-slate-200 bg-white transition-[width] duration-300 ease-in-out will-change-[width] lg:flex ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
@@ -89,25 +90,10 @@ function Sidebar() {
               : "justify-between px-6"
           }`}
         >
-          {!collapsed && (
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#07111f] text-emerald-400">
-                <BrainCircuit size={20} />
-              </div>
-
-              <div>
-                <h1 className="text-lg font-bold tracking-tight text-[#07111f]">
-                  Finance
-                  <span className="text-emerald-500">
-                    AI
-                  </span>
-                </h1>
-
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                  Financial Intelligence
-                </p>
-              </div>
-            </div>
+          {collapsed ? (
+            <BrandLogo size={34} showText={false} />
+          ) : (
+            <BrandLogo size={36} showText={true} />
           )}
 
           <button

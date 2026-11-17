@@ -67,7 +67,7 @@ function Login() {
             Welcome back
           </p>
           <h1 className="text-3xl font-semibold text-[#07111f]">
-            Sign in to FinanceAI
+            Sign in to FinArtha
           </h1>
           <p className="mt-2 text-sm text-slate-500">
             Continue to your financial intelligence dashboard.

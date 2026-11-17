@@ -82,7 +82,7 @@ const ParsingProgress = ({
       <div className="parsing-progress__header">
         <div>
           <span className="parsing-progress__eyebrow">
-            FINANCEAI DOCUMENT INTELLIGENCE
+            FINARTHA DOCUMENT INTELLIGENCE
           </span>
 
           <h2>
