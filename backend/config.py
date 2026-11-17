@@ -7,10 +7,14 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "finance-ai-secret-key-2026")
     
     # SQLAlchemy Database Configuration (SQLite default with PostgreSQL support)
-    SQLALCHEMY_DATABASE_URI = os.getenv(
+    raw_db_url = os.getenv(
         "DATABASE_URL",
         f"sqlite:///{os.path.join(BASE_DIR, 'data', 'financeai.db')}"
     )
+    if raw_db_url.startswith("postgres://"):
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+
+    SQLALCHEMY_DATABASE_URI = raw_db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     GOOGLE_CLIENT_ID = os.getenv(
