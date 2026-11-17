@@ -12,7 +12,9 @@ class Config:
         f"sqlite:///{os.path.join(BASE_DIR, 'data', 'financeai.db')}"
     )
     if raw_db_url.startswith("postgres://"):
-        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif raw_db_url.startswith("postgresql://") and not raw_db_url.startswith("postgresql+"):
+        raw_db_url = raw_db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
     SQLALCHEMY_DATABASE_URI = raw_db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
